@@ -176,6 +176,45 @@ export type Database = {
           },
         ]
       }
+      bill_shares: {
+        Row: {
+          bill_date: string
+          bill_id: string
+          bill_no: string
+          bill_type: string
+          created_at: string
+          customer_name: string
+          id: string
+          owner_id: string
+          shared_at: string
+          total_amount: number
+        }
+        Insert: {
+          bill_date: string
+          bill_id: string
+          bill_no: string
+          bill_type: string
+          created_at?: string
+          customer_name: string
+          id?: string
+          owner_id: string
+          shared_at?: string
+          total_amount: number
+        }
+        Update: {
+          bill_date?: string
+          bill_id?: string
+          bill_no?: string
+          bill_type?: string
+          created_at?: string
+          customer_name?: string
+          id?: string
+          owner_id?: string
+          shared_at?: string
+          total_amount?: number
+        }
+        Relationships: []
+      }
       bills: {
         Row: {
           bill_date: string

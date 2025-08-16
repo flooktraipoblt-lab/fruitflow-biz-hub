@@ -221,7 +221,7 @@ export default function Employees() {
     const totalEarning = workingDays * parseFloat(employee.daily_rate.toString());
     
     const employeeWithdrawals = withdrawals.filter(w => w.employee_id === employee.id);
-    const totalWithdrawn = employeeWithdrawals.reduce((sum, w) => sum + parseFloat(w.amount), 0);
+    const totalWithdrawn = employeeWithdrawals.reduce((sum, w) => sum + parseFloat(w.amount.toString()), 0);
     
     return totalEarning - totalWithdrawn;
   };

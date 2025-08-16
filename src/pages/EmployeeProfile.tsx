@@ -169,9 +169,9 @@ export default function EmployeeProfile() {
     const halfDays = absences.filter(a => a.type === 'half_day').length;
     
     const workingDays = totalDays - absentDays - leaveDays - (halfDays * 0.5);
-    const totalEarning = workingDays * parseFloat(employee.daily_rate);
+    const totalEarning = workingDays * parseFloat(employee.daily_rate.toString());
     
-    const totalWithdrawn = withdrawals.reduce((sum, w) => sum + parseFloat(w.amount), 0);
+    const totalWithdrawn = withdrawals.reduce((sum, w) => sum + parseFloat(w.amount.toString()), 0);
     
     return totalEarning - totalWithdrawn;
   };
@@ -280,7 +280,7 @@ export default function EmployeeProfile() {
               )}
               <div>
                 <label className="text-sm font-medium text-muted-foreground">ค่าจ้างต่อวัน</label>
-                <p className="text-lg">฿{parseFloat(employee.daily_rate).toLocaleString()}</p>
+                <p className="text-lg">฿{parseFloat(employee.daily_rate.toString()).toLocaleString()}</p>
               </div>
               <Separator />
               <div>
@@ -297,7 +297,7 @@ export default function EmployeeProfile() {
               </div>
               <div>
                 <label className="text-sm font-medium text-muted-foreground">เงินที่เบิกไปแล้ว</label>
-                <p className="text-lg">฿{withdrawals.reduce((sum, w) => sum + parseFloat(w.amount), 0).toLocaleString()}</p>
+                <p className="text-lg">฿{withdrawals.reduce((sum, w) => sum + parseFloat(w.amount.toString()), 0).toLocaleString()}</p>
               </div>
             </CardContent>
           </Card>
@@ -432,7 +432,7 @@ export default function EmployeeProfile() {
                     </div>
                     <div className="text-right">
                       <p className="text-lg font-bold text-primary">
-                        ฿{parseFloat(withdrawal.amount).toLocaleString()}
+                        ฿{parseFloat(withdrawal.amount.toString()).toLocaleString()}
                       </p>
                     </div>
                   </div>

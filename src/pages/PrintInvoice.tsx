@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
+import { Printer, Camera, Share } from "lucide-react";
+import html2canvas from "html2canvas";
+import { toast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { useAuthData } from "@/hooks/useAuthData";
+import { format } from "date-fns";
 
 // Minimal, print-optimized page to render an invoice and auto-print (A3 landscape)
 interface Invoice {
@@ -30,10 +36,97 @@ const nf = new Intl.NumberFormat("th-TH", { minimumFractionDigits: 2, maximumFra
 
 export default function PrintInvoice() {
   const { invoiceId } = useParams();
+  const navigate = useNavigate();
+  const { session } = useAuthData();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [items, setItems] = useState<InvoiceItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [bill, setBill] = useState<any>(null);
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleSaveImage = async () => {
+    try {
+      const billElement = document.querySelector('.bill-content') as HTMLElement;
+      if (!billElement) {
+        toast({ title: "ไม่พบเนื้อหาบิล", variant: "destructive" });
+        return;
+      }
+
+      const canvas = await html2canvas(billElement, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        useCORS: true,
+      });
+
+      // Create download link
+      const link = document.createElement('a');
+      link.download = `bill-${bill?.bill_no || 'unknown'}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+
+      toast({ title: "บันทึกรูปภาพสำเร็จ" });
+    } catch (error) {
+      console.error('Error saving image:', error);
+      toast({ title: "เกิดข้อผิดพลาดในการบันทึกรูป", variant: "destructive" });
+    }
+  };
+
+  const handleShareToLine = async () => {
+    try {
+      const billElement = document.querySelector('.bill-content') as HTMLElement;
+      if (!billElement) {
+        toast({ title: "ไม่พบเนื้อหาบิล", variant: "destructive" });
+        return;
+      }
+
+      const canvas = await html2canvas(billElement, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        useCORS: true,
+      });
+
+      // Convert canvas to blob
+      canvas.toBlob(async (blob) => {
+        if (!blob || !bill) return;
+
+        // Save share data to Supabase
+        const shareData = {
+          bill_id: bill.id,
+          bill_no: bill.bill_no,
+          customer_name: bill.customer,
+          bill_type: bill.type,
+          total_amount: bill.total,
+          bill_date: bill.bill_date,
+          shared_at: new Date().toISOString(),
+          owner_id: session?.user.id,
+        };
+
+        const { error } = await supabase.from('bill_shares').insert(shareData);
+        if (error) {
+          console.error('Error saving share data:', error);
+        }
+
+        // Create share text
+        const shareText = `วันที่ : ${format(new Date(bill.bill_date), "dd/MM/yyyy")}\nชื่อลูกค้า : ${bill.customer}\nประเภทบิล : ${bill.type}\nยอดเงินรวม : ${parseFloat(bill.total).toLocaleString()} บาท\nรูปภาพบิล :`;
+
+        // Create temporary link with image
+        const imageUrl = canvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        link.href = `https://line.me/R/msg/text/?${encodeURIComponent(shareText)}`;
+        link.target = '_blank';
+        link.click();
+
+        toast({ title: "เปิด Line แล้ว กรุณาแนบรูปภาพด้วยตนเอง" });
+      }, 'image/png', 1.0);
+    } catch (error) {
+      console.error('Error sharing to Line:', error);
+      toast({ title: "เกิดข้อผิดพลาดในการแชร์", variant: "destructive" });
+    }
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -80,6 +173,7 @@ export default function PrintInvoice() {
           if (billErr) throw billErr;
           if (biErr) throw biErr;
           if (!bill) throw new Error("ไม่พบข้อมูลใบแจ้งหนี้");
+          setBill(bill); // Store bill data for sharing
           setInvoice({
             id: bill.id,
             bill_date: bill.bill_date,
@@ -198,13 +292,31 @@ export default function PrintInvoice() {
     return <div style={{ padding: 24, color: 'red' }}>{error}</div>;
   }
 
-  return (
+      return (
     <div className="animate-fade-in">
       <Helmet>
         <title>พิมพ์บิล | A5 แนวนอน</title>
         <meta name="description" content="หน้าพิมพ์บิล ขนาด A5 แนวนอน" />
         <link rel="canonical" href={`${window.location.origin}/print/${invoiceId}`} />
       </Helmet>
+
+      <div className="flex justify-center print:hidden mb-4 gap-2">
+        <Button onClick={handlePrint}>
+          <Printer className="mr-2 h-4 w-4" />
+          พิมพ์บิล
+        </Button>
+        <Button onClick={handleSaveImage} variant="outline">
+          <Camera className="mr-2 h-4 w-4" />
+          บันทึกรูป
+        </Button>
+        <Button onClick={handleShareToLine} variant="outline">
+          <Share className="mr-2 h-4 w-4" />
+          แชร์ไป Line
+        </Button>
+        <Button variant="secondary" onClick={() => navigate(-1)}>
+          กลับ
+        </Button>
+      </div>
 
       <style>{`
         @page { size: A5 landscape; margin: 0mm; }
@@ -270,7 +382,7 @@ export default function PrintInvoice() {
       `}</style>
 
       {pages.map((rows, pageIndex) => (
-        <main className={`page ${isCompact ? 'compact' : ''}`} key={pageIndex}>
+        <main className={`page ${isCompact ? 'compact' : ''} bill-content`} key={pageIndex}>
           <div className="brand-row">
             <div className="brand-logo">TSF</div>
             <div className="brand-info">
