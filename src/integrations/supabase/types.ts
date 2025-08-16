@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "13.0.4"
@@ -256,6 +256,153 @@ export type Database = {
           },
         ]
       }
+      employee_absences: {
+        Row: {
+          created_at: string
+          date: string
+          employee_id: string
+          id: string
+          owner_id: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          employee_id: string
+          id?: string
+          owner_id: string
+          type: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          employee_id?: string
+          id?: string
+          owner_id?: string
+          type?: string
+        }
+        Relationships: []
+      }
+      employee_withdrawals: {
+        Row: {
+          amount: number
+          created_at: string
+          date: string
+          employee_id: string
+          id: string
+          owner_id: string
+          type: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          date?: string
+          employee_id: string
+          id?: string
+          owner_id: string
+          type: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          date?: string
+          employee_id?: string
+          id?: string
+          owner_id?: string
+          type?: string
+        }
+        Relationships: []
+      }
+      employees: {
+        Row: {
+          created_at: string
+          daily_rate: number
+          end_date: string | null
+          id: string
+          name: string
+          owner_id: string
+          phone: string | null
+          profile_image_url: string | null
+          start_date: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          daily_rate?: number
+          end_date?: string | null
+          id?: string
+          name: string
+          owner_id: string
+          phone?: string | null
+          profile_image_url?: string | null
+          start_date: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          daily_rate?: number
+          end_date?: string | null
+          id?: string
+          name?: string
+          owner_id?: string
+          phone?: string | null
+          profile_image_url?: string | null
+          start_date?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      expense_types: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          owner_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          owner_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          owner_id?: string
+        }
+        Relationships: []
+      }
+      expenses: {
+        Row: {
+          amount: number
+          created_at: string
+          date: string
+          id: string
+          owner_id: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          date?: string
+          id?: string
+          owner_id: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          date?: string
+          id?: string
+          owner_id?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       mailbox_messages: {
         Row: {
           created_at: string
@@ -368,8 +515,8 @@ export type Database = {
     Functions: {
       has_role: {
         Args: {
-          _user_id: string
           _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
         }
         Returns: boolean
       }

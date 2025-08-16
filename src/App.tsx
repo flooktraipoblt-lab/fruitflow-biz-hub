@@ -20,6 +20,9 @@ import PendingApproval from "./pages/PendingApproval";
 import AdminUsers from "./pages/AdminUsers";
 import SubmitMailbox from "./pages/SubmitMailbox";
 import MailboxPage from "./pages/MailboxPage";
+import Expenses from "./pages/Expenses";
+import Employees from "./pages/Employees";
+import EmployeeProfile from "./pages/EmployeeProfile";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -43,6 +46,9 @@ const App = () => (
               <Route path="/admin" element={<AdminUsers />} />
               <Route path="/submit" element={<SubmitMailbox />} />
               <Route path="/mailbox" element={<MailboxPage />} />
+              <Route path="/expenses" element={<Expenses />} />
+              <Route path="/employees" element={<Employees />} />
+              <Route path="/employee-profile/:id" element={<EmployeeProfile />} />
             </Route>
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="/print/:invoiceId" element={<PrintInvoice />} />
