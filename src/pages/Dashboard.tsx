@@ -51,15 +51,32 @@ export default function Dashboard() {
     },
   });
 
+  const { data: expenses = [] } = useQuery({
+    queryKey: ["dashboard-expenses", rangeDates],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("expenses")
+        .select("id, date, type, amount")
+        .gte("date", rangeDates.from.toISOString())
+        .lte("date", rangeDates.to.toISOString())
+        .order("date", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
   const metrics = useMemo(() => {
-    let buy = 0, sell = 0;
+    let buy = 0, sell = 0, expenseTotal = 0;
     bills.forEach((b: any) => {
       const t = Number(b.total ?? 0);
       if (b.type === "buy") buy += t;
       if (b.type === "sell") sell += t;
     });
-    return { buy, sell, profit: sell - buy };
-  }, [bills]);
+    expenses.forEach((e: any) => {
+      expenseTotal += Number(e.amount ?? 0);
+    });
+    return { buy, sell, expenses: expenseTotal, profit: sell - buy - expenseTotal };
+  }, [bills, expenses]);
 
   const dueTop = useMemo(() => {
     const list = (bills as any[]).filter((b:any) => b.status === 'due');
@@ -146,7 +163,7 @@ export default function Dashboard() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <MetricCard title="ยอดซื้อทั้งหมด" value={`฿ ${money(metrics.buy)}`} range={range} onRange={setRange} />
         <MetricCard title="ยอดขายทั้งหมด" value={`฿ ${money(metrics.sell)}`} range={range} onRange={setRange} />
-        <MetricCard title="ค่าใช้จ่าย" value={`฿ ${money(metrics.buy)}`} range={range} onRange={setRange} />
+        <MetricCard title="ค่าใช้จ่าย" value={`฿ ${money(metrics.expenses)}`} range={range} onRange={setRange} />
         <MetricCard title="กำไร" value={`฿ ${money(metrics.profit)}`} range={range} onRange={setRange} />
       </div>
 
