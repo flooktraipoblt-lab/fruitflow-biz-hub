@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Autocomplete } from "@/components/ui/autocomplete";
+import { useAutocompleteData } from "@/hooks/useAutocompleteData";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,14 +27,14 @@ const employeeSchema = z.object({
   name: z.string().min(1, "ชื่อจำเป็นต้องระบุ"),
   phone: z.string().optional(),
   start_date: z.date(),
-  daily_rate: z.number().min(0, "ค่าจ้างต้องมากกว่าหรือเท่ากับ 0"),
+  daily_rate: z.union([z.number(), z.string()]).transform((val) => typeof val === 'string' ? (val === '' ? 0 : parseFloat(val)) : val),
   profile_image_url: z.string().optional(),
 });
 
 const withdrawalSchema = z.object({
   date: z.date(),
   type: z.enum(["cash", "transfer"]),
-  amount: z.number().min(0, "จำนวนเงินต้องมากกว่าหรือเท่ากับ 0"),
+  amount: z.union([z.number(), z.string()]).transform((val) => typeof val === 'string' ? (val === '' ? 0 : parseFloat(val)) : val),
 });
 
 type EmployeeFormData = z.infer<typeof employeeSchema>;
@@ -47,6 +49,8 @@ export default function Employees() {
   const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
   const [isEmployeeDialogOpen, setIsEmployeeDialogOpen] = useState(false);
   const [isWithdrawalDialogOpen, setIsWithdrawalDialogOpen] = useState(false);
+
+  const { employeeNames } = useAutocompleteData();
 
   const employeeForm = useForm<EmployeeFormData>({
     resolver: zodResolver(employeeSchema),
@@ -334,7 +338,13 @@ export default function Employees() {
                           <FormItem>
                             <FormLabel>ชื่อ</FormLabel>
                             <FormControl>
-                              <Input {...field} placeholder="ชื่อพนักงาน" />
+                              <Autocomplete
+                                value={field.value}
+                                onValueChange={field.onChange}
+                                options={employeeNames}
+                                placeholder="ค้นหาหรือกรอกชื่อพนักงาน"
+                                emptyText="ไม่พบพนักงาน"
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -392,7 +402,7 @@ export default function Employees() {
                                 type="number"
                                 step="0.01"
                                 {...field}
-                                onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                onChange={(e) => field.onChange(e.target.value === "" ? "" : parseFloat(e.target.value))}
                                 placeholder="ค่าจ้างต่อวัน"
                               />
                             </FormControl>
@@ -554,7 +564,7 @@ export default function Employees() {
                           type="number"
                           step="0.01"
                           {...field}
-                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                          onChange={(e) => field.onChange(e.target.value === "" ? "" : parseFloat(e.target.value))}
                           placeholder="จำนวนเงิน"
                         />
                       </FormControl>

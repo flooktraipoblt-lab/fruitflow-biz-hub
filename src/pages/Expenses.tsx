@@ -375,7 +375,7 @@ export default function Expenses() {
                                 type="number"
                                 step="0.01"
                                 {...field}
-                                onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                onChange={(e) => field.onChange(e.target.value === "" ? "" : parseFloat(e.target.value))}
                                 placeholder="จำนวนเงิน"
                               />
                             </FormControl>

@@ -1,4 +1,6 @@
 import { Helmet } from "react-helmet-async";
+import { Autocomplete } from "@/components/ui/autocomplete";
+import { useAutocompleteData } from "@/hooks/useAutocompleteData";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -38,10 +40,12 @@ export default function Baskets() {
   const [customer, setCustomer] = useState("");
   const [type, setType] = useState<"mix" | "named">("mix");
   const [name, setName] = useState("");
-  const [qty, setQty] = useState<number>(0);
+  const [qty, setQty] = useState<number | "">("");
   const [flow, setFlow] = useState<"in" | "out">("in");
   const [page, setPage] = useState(1);
   const pageSize = 20;
+
+  const { customerNames, basketNames } = useAutocompleteData();
 
   // Inline edit states for latest list
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -73,14 +77,14 @@ export default function Baskets() {
         customer,
         basket_type: type,
         basket_name: type === "named" ? name : null,
-        quantity: qty,
+        quantity: Number(qty) || 0,
         flow,
       };
       const { error } = await (supabase as any).from("baskets").insert(payload);
       if (error) throw error;
     },
     onSuccess: () => {
-      setName(""); setCustomer(""); setQty(0); setType("mix");
+      setName(""); setCustomer(""); setQty(""); setType("mix");
       refetch();
     },
   });
@@ -139,7 +143,13 @@ export default function Baskets() {
           </div>
           <div className="grid gap-2">
             <Label>ชื่อลูกค้า</Label>
-            <Input placeholder="กรอกชื่อลูกค้า" value={customer} onChange={(e)=> setCustomer(e.target.value)} />
+            <Autocomplete
+              value={customer}
+              onValueChange={setCustomer}
+              options={customerNames}
+              placeholder="ค้นหาหรือกรอกชื่อลูกค้า"
+              emptyText="ไม่พบลูกค้า"
+            />
           </div>
           <div className="grid gap-2">
             <Label>ประเภทตะกร้า</Label>
@@ -168,12 +178,18 @@ export default function Baskets() {
           {type === "named" && (
             <div className="grid gap-2">
               <Label>ชื่อตะกร้า</Label>
-              <Input placeholder="เช่น: กล้วยหอม A" value={name} onChange={(e)=> setName(e.target.value)} />
+              <Autocomplete
+                value={name}
+                onValueChange={setName}
+                options={basketNames}
+                placeholder="ค้นหาหรือกรอกชื่อตะกร้า"
+                emptyText="ไม่พบชื่อตะกร้า"
+              />
             </div>
           )}
           <div className="grid gap-2">
             <Label>จำนวน</Label>
-            <Input type="number" value={qty} onChange={(e)=> setQty(Number(e.target.value))} />
+            <Input type="number" value={qty} onChange={(e)=> setQty(e.target.value === "" ? "" : Number(e.target.value))} placeholder="จำนวน" />
           </div>
           <div className="md:col-span-5 flex gap-2">
             <AlertDialog>
@@ -198,7 +214,7 @@ export default function Baskets() {
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
-            <Button variant="secondary" onClick={()=> { setName(""); setCustomer(""); setQty(0); setType("mix"); }}>รีเซ็ต</Button>
+            <Button variant="secondary" onClick={()=> { setName(""); setCustomer(""); setQty(""); setType("mix"); }}>รีเซ็ต</Button>
           </div>
         </CardContent>
       </Card>

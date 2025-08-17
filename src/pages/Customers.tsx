@@ -1,5 +1,7 @@
 import { Helmet } from "react-helmet-async";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Autocomplete } from "@/components/ui/autocomplete";
+import { useAutocompleteData } from "@/hooks/useAutocompleteData";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useMemo, useState } from "react";
@@ -36,6 +38,8 @@ export default function Customers() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
   const [editingPhone, setEditingPhone] = useState("");
+
+  const { customerNames } = useAutocompleteData();
 
   const { data: customers = [], refetch } = useQuery<Customer[]>({
     queryKey: ["customers"],
@@ -99,7 +103,13 @@ export default function Customers() {
         <CardContent className="grid gap-4 sm:grid-cols-4 items-end">
           <div className="grid gap-2">
             <label>ชื่อลูกค้า</label>
-            <Input placeholder="เช่น: คุณสมชาย" value={name} onChange={(e)=> setName(e.target.value)} />
+            <Autocomplete
+              value={name}
+              onValueChange={setName}
+              options={customerNames}
+              placeholder="ค้นหาหรือกรอกชื่อลูกค้า"
+              emptyText="ไม่พบลูกค้า"
+            />
           </div>
           <div className="grid gap-2">
             <label>โทรศัพท์</label>

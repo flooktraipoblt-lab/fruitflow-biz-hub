@@ -1,5 +1,7 @@
 import { Helmet } from "react-helmet-async";
 import { useMemo, useState, useEffect, useRef } from "react";
+import { Autocomplete } from "@/components/ui/autocomplete";
+import { useAutocompleteData } from "@/hooks/useAutocompleteData";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -41,6 +43,8 @@ export default function CreateBill() {
   const billId = searchParams.get("id");
   const [confirmAddCustomerOpen, setConfirmAddCustomerOpen] = useState(false);
   const pendingActionRef = useRef<null | (() => Promise<void>)>(null);
+
+  const { customerNames, basketNames, itemNames } = useAutocompleteData();
 
   useEffect(() => {
     const load = async () => {
@@ -483,29 +487,13 @@ export default function CreateBill() {
           </div>
           <div className="grid gap-2">
             <Label>ชื่อลูกค้า</Label>
-            <div className="relative">
-              <Input
-                placeholder="พิมพ์เพื่อค้นหา/เพิ่มชื่อลูกค้า"
-                value={customer}
-                onChange={(e) => ensureCustomer(e.target.value)}
-                onFocus={() => setShowCustomerSug(true)}
-                onBlur={() => setTimeout(() => setShowCustomerSug(false), 120)}
-              />
-              {showCustomerSug && customerSug.length > 0 && (
-                <div className="absolute top-full mt-1 w-full rounded-md border bg-popover text-popover-foreground shadow z-50">
-                  {customerSug.map((s) => (
-                    <button
-                      key={s}
-                      type="button"
-                      className="w-full text-left px-3 py-2 hover:bg-muted/50"
-                      onMouseDown={(e) => { e.preventDefault(); setCustomer(s); setShowCustomerSug(false); }}
-                    >
-                      {s}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+            <Autocomplete
+              value={customer}
+              onValueChange={setCustomer}
+              options={customerNames}
+              placeholder="ค้นหาหรือกรอกชื่อลูกค้า"
+              emptyText="ไม่พบลูกค้า"
+            />
           </div>
           <div className="grid gap-2">
             <Label>ประเภทบิล</Label>
@@ -532,19 +520,25 @@ export default function CreateBill() {
             <div key={row.id} className="grid gap-2 md:grid-cols-8 items-end rounded-md border p-3">
               <div className="grid gap-1 md:col-span-2">
                 <Label>ชื่อสินค้า</Label>
-                <Input placeholder="ตัวอย่าง: มะม่วงน้ำดอกไม้" value={row.name} onChange={(e) => setItems((s) => s.map((x) => x.id === row.id ? { ...x, name: e.target.value } : x))} />
+                <Autocomplete
+                  value={row.name}
+                  onValueChange={(value) => setItems((s) => s.map((x) => x.id === row.id ? { ...x, name: value } : x))}
+                  options={itemNames}
+                  placeholder="ค้นหาหรือกรอกชื่อสินค้า"
+                  emptyText="ไม่พบสินค้า"
+                />
               </div>
               <div className="grid gap-1">
                 <Label>จำนวน</Label>
-                <Input type="number" value={row.qty} onChange={(e) => setItems((s) => s.map((x) => x.id === row.id ? { ...x, qty: e.target.value === "" ? "" : Number(e.target.value) } : x))} />
+                <Input type="number" value={row.qty} onChange={(e) => setItems((s) => s.map((x) => x.id === row.id ? { ...x, qty: e.target.value === "" ? "" : Number(e.target.value) } : x))} placeholder="จำนวน" />
               </div>
               <div className="grid gap-1">
                 <Label>น้ำหนัก</Label>
-                <Input type="number" value={row.weight} onChange={(e) => setItems((s) => s.map((x) => x.id === row.id ? { ...x, weight: e.target.value === "" ? "" : Number(e.target.value) } : x))} />
+                <Input type="number" value={row.weight} onChange={(e) => setItems((s) => s.map((x) => x.id === row.id ? { ...x, weight: e.target.value === "" ? "" : Number(e.target.value) } : x))} placeholder="น้ำหนัก" />
               </div>
               <div className="grid gap-1">
                 <Label>เศษ</Label>
-                <Input type="number" value={row.fraction} onChange={(e) => setItems((s) => s.map((x) => x.id === row.id ? { ...x, fraction: e.target.value === "" ? "" : Number(e.target.value) } : x))} />
+                <Input type="number" value={row.fraction} onChange={(e) => setItems((s) => s.map((x) => x.id === row.id ? { ...x, fraction: e.target.value === "" ? "" : Number(e.target.value) } : x))} placeholder="เศษ" />
               </div>
               <div className="grid gap-1">
                 <Label>น้ำหนักรวม (auto)</Label>
@@ -552,7 +546,7 @@ export default function CreateBill() {
               </div>
               <div className="grid gap-1">
                 <Label>ราคา</Label>
-                <Input type="number" value={row.price} onChange={(e) => setItems((s) => s.map((x) => x.id === row.id ? { ...x, price: e.target.value === "" ? "" : Number(e.target.value) } : x))} />
+                <Input type="number" value={row.price} onChange={(e) => setItems((s) => s.map((x) => x.id === row.id ? { ...x, price: e.target.value === "" ? "" : Number(e.target.value) } : x))} placeholder="ราคา" />
               </div>
               <div className="grid gap-1">
                 <Label>จำนวนเงิน (auto)</Label>
@@ -591,12 +585,18 @@ export default function CreateBill() {
           {basketType === "named" && (
             <div className="grid gap-2">
               <Label>ชื่อตะกร้า</Label>
-              <Input placeholder="เช่น: กล้วยหอม A" value={basketName} onChange={(e) => setBasketName(e.target.value)} />
+              <Autocomplete
+                value={basketName}
+                onValueChange={setBasketName}
+                options={basketNames}
+                placeholder="ค้นหาหรือกรอกชื่อตะกร้า"
+                emptyText="ไม่พบชื่อตะกร้า"
+              />
             </div>
           )}
           <div className="grid gap-2">
             <Label>จำนวนตะกร้า</Label>
-            <Input type="number" value={basketQty} onChange={(e) => setBasketQty(e.target.value === "" ? "" : Number(e.target.value))} />
+            <Input type="number" value={basketQty} onChange={(e) => setBasketQty(e.target.value === "" ? "" : Number(e.target.value))} placeholder="จำนวนตะกร้า" />
           </div>
           {type === "sell" && (
             <label className="md:col-span-3 inline-flex items-center gap-2 text-sm">
