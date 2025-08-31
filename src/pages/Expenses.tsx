@@ -87,6 +87,25 @@ export default function Expenses() {
     enabled: !!session,
   });
 
+// Send webhook notification
+  const sendWebhook = async (action: string, data: any) => {
+    try {
+      await fetch("https://n8n.srv929073.hstgr.cloud/webhook-test/065b6aa9-db2a-4607-83fe-e5cc4ed93c6c", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          action,
+          data,
+          timestamp: new Date().toISOString(),
+        }),
+      });
+    } catch (error) {
+      console.error("Failed to send webhook:", error);
+    }
+  };
+
   // Create expense mutation
   const createExpenseMutation = useMutation({
     mutationFn: async (data: ExpenseFormData) => {
@@ -97,19 +116,21 @@ export default function Expenses() {
         owner_id: session?.user.id,
       });
       if (error) throw error;
+      return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
       toast({ title: "บันทึกค่าใช้จ่ายสำเร็จ" });
       expenseForm.reset();
       setIsExpenseDialogOpen(false);
+      sendWebhook("create", data);
     },
     onError: () => {
       toast({ title: "เกิดข้อผิดพลาด", variant: "destructive" });
     },
   });
 
-  // Update expense mutation
+// Update expense mutation
   const updateExpenseMutation = useMutation({
     mutationFn: async (data: ExpenseFormData & { id: string }) => {
       const { error } = await supabase
@@ -121,28 +142,36 @@ export default function Expenses() {
         })
         .eq("id", data.id);
       if (error) throw error;
+      return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
       toast({ title: "แก้ไขค่าใช้จ่ายสำเร็จ" });
       setEditingExpense(null);
       expenseForm.reset();
       setIsExpenseDialogOpen(false);
+      sendWebhook("update", data);
     },
     onError: () => {
       toast({ title: "เกิดข้อผิดพลาด", variant: "destructive" });
     },
   });
 
-  // Delete expense mutation
+// Delete expense mutation
   const deleteExpenseMutation = useMutation({
     mutationFn: async (id: string) => {
+      // Get expense data before deletion for webhook
+      const { data: expenseData } = await supabase.from("expenses").select("*").eq("id", id).single();
       const { error } = await supabase.from("expenses").delete().eq("id", id);
       if (error) throw error;
+      return expenseData;
     },
-    onSuccess: () => {
+    onSuccess: (expenseData) => {
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
       toast({ title: "ลบค่าใช้จ่ายสำเร็จ" });
+      if (expenseData) {
+        sendWebhook("delete", expenseData);
+      }
     },
     onError: () => {
       toast({ title: "เกิดข้อผิดพลาด", variant: "destructive" });
