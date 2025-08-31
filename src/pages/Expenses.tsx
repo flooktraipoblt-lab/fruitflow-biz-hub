@@ -123,7 +123,7 @@ export default function Expenses() {
       toast({ title: "บันทึกค่าใช้จ่ายสำเร็จ" });
       expenseForm.reset();
       setIsExpenseDialogOpen(false);
-      sendWebhook("create", data);
+      sendWebhook("expenses_create", data);
     },
     onError: () => {
       toast({ title: "เกิดข้อผิดพลาด", variant: "destructive" });
@@ -150,7 +150,7 @@ export default function Expenses() {
       setEditingExpense(null);
       expenseForm.reset();
       setIsExpenseDialogOpen(false);
-      sendWebhook("update", data);
+      sendWebhook("expenses_update", data);
     },
     onError: () => {
       toast({ title: "เกิดข้อผิดพลาด", variant: "destructive" });
@@ -170,7 +170,7 @@ export default function Expenses() {
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
       toast({ title: "ลบค่าใช้จ่ายสำเร็จ" });
       if (expenseData) {
-        sendWebhook("delete", expenseData);
+        sendWebhook("expenses_delete", expenseData);
       }
     },
     onError: () => {
