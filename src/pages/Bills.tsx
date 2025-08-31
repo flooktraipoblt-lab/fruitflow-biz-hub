@@ -81,7 +81,7 @@ export default function Bills() {
 
       // ส่งข้อมูลไปยัง n8n webhook (ไม่ให้ fail webhook ส่งผลต่อการลบ)
       try {
-        await fetch("http://n8n.trakarnsiam.com/webhook-test/065b6aa9-db2a-4607-83fe-e5cc4ed93c6c", {
+        await fetch("http://n8n.trakarnsiam.com/webhook-test/69c7b66c-a2a0-4ee3-ba8a-3a0e32e7ef2b", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
