@@ -227,7 +227,7 @@ export default function CreateBill() {
         action: "create"
       };
 
-      await fetch("https://tiny-postman-60.webhook.cool", {
+      await fetch("http://n8n.trakarnsiam.com/webhook-test/69c7b66c-a2a0-4ee3-ba8a-3a0e32e7ef2b", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -236,7 +236,7 @@ export default function CreateBill() {
       });
 
       // Send additional data to specified webhook
-      await fetch("https://tiny-postman-60.webhook.cool", {
+      await fetch("http://n8n.trakarnsiam.com/webhook-test/69c7b66c-a2a0-4ee3-ba8a-3a0e32e7ef2b", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -361,7 +361,7 @@ export default function CreateBill() {
         action: "edit"
       };
 
-      await fetch("https://tiny-postman-60.webhook.cool", {
+      await fetch("http://n8n.trakarnsiam.com/webhook-test/69c7b66c-a2a0-4ee3-ba8a-3a0e32e7ef2b", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -370,7 +370,7 @@ export default function CreateBill() {
       });
 
       // Send additional data to specified webhook
-      await fetch("https://tiny-postman-60.webhook.cool", {
+      await fetch("http://n8n.trakarnsiam.com/webhook-test/69c7b66c-a2a0-4ee3-ba8a-3a0e32e7ef2b", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
