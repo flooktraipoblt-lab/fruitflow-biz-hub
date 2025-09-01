@@ -109,14 +109,14 @@ export default function Expenses() {
   // Create expense mutation
   const createExpenseMutation = useMutation({
     mutationFn: async (data: ExpenseFormData) => {
-      const { error } = await supabase.from("expenses").insert({
+      const { data: createdExpense, error } = await supabase.from("expenses").insert({
         date: data.date.toISOString(),
         type: data.type,
         amount: data.amount,
         owner_id: session?.user.id,
-      });
+      }).select().single();
       if (error) throw error;
-      return data;
+      return createdExpense;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
