@@ -90,7 +90,7 @@ export default function Expenses() {
 // Send webhook notification
   const sendWebhook = async (action: string, data: any) => {
     try {
-      await fetch("https://n8n.srv929073.hstgr.cloud/webhook-test/065b6aa9-db2a-4607-83fe-e5cc4ed93c6c", {
+      await fetch("https://n8n.srv929073.hstgr.cloud/webhook/065b6aa9-db2a-4607-83fe-e5cc4ed93c6c", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -109,14 +109,14 @@ export default function Expenses() {
   // Create expense mutation
   const createExpenseMutation = useMutation({
     mutationFn: async (data: ExpenseFormData) => {
-      const { data: insertedData, error } = await supabase.from("expenses").insert({
+      const { error } = await supabase.from("expenses").insert({
         date: data.date.toISOString(),
         type: data.type,
         amount: data.amount,
         owner_id: session?.user.id,
-      }).select().single();
+      });
       if (error) throw error;
-      return insertedData;
+      return data;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
