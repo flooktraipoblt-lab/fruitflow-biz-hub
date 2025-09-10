@@ -252,203 +252,260 @@ export default function Expenses() {
   }
 
   return (
-    <div className="animate-fade-in min-h-screen bg-gradient-to-br from-background to-background/50 p-4">
+    <div className="container mx-auto px-4 py-8 space-y-8 animate-fade-in">
       <Helmet>
         <title>ค่าใช้จ่าย | ระบบจัดการร้านค้า</title>
         <meta name="description" content="จัดการค่าใช้จ่ายของร้านค้า บันทึก แก้ไข และติดตามค่าใช้จ่ายต่างๆ" />
       </Helmet>
 
-      <div className="container mx-auto max-w-7xl">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground mb-2">ค่าใช้จ่าย</h1>
-          <p className="text-muted-foreground">จัดการและติดตามค่าใช้จ่ายของร้านค้า</p>
-        </div>
+      {/* Header Section */}
+      <div className="bg-gradient-to-r from-destructive/10 to-destructive/5 rounded-2xl p-8 border border-destructive/20">
+        <h1 className="text-4xl font-bold text-destructive mb-2">ค่าใช้จ่าย</h1>
+        <p className="text-muted-foreground">จัดการและติดตามค่าใช้จ่ายของร้านค้าอย่างมีประสิทธิภาพ</p>
+      </div>
 
-        {/* Search and Filters */}
-        <Card className="mb-6">
-          <CardContent className="p-6">
-            <div className="flex flex-col md:flex-row gap-4 mb-4">
-              <div className="flex-1">
-                <div className="relative">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="ค้นหาค่าใช้จ่าย..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
+      {/* Search and Filters */}
+      <Card className="shadow-elegant border-primary/10">
+        <CardHeader className="bg-gradient-to-r from-primary/5 to-transparent">
+          <CardTitle className="text-xl text-primary flex items-center gap-2">
+            <div className="w-2 h-6 bg-primary rounded-full"></div>
+            ค้นหาและกรองข้อมูล
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-6 space-y-6">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="ค้นหาค่าใช้จ่าย..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 border-primary/20 focus:border-primary/40"
+                />
               </div>
-              <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="w-full md:w-[200px]">
-                  <SelectValue placeholder="เลือกประเภท" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">ทุกประเภท</SelectItem>
-                  {expenseTypes.map((type) => (
-                    <SelectItem key={type.id} value={type.name}>
-                      {type.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <ExportButton data={filteredExpenses} filename="expenses.csv" />
             </div>
+            <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <SelectTrigger className="w-full md:w-[200px] border-primary/20 focus:border-primary/40">
+                <SelectValue placeholder="เลือกประเภท" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">ทุกประเภท</SelectItem>
+                {expenseTypes.map((type) => (
+                  <SelectItem key={type.id} value={type.name}>
+                    {type.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <ExportButton data={filteredExpenses} filename="expenses.csv" />
+          </div>
 
-            <div className="flex gap-2">
-              <Dialog open={isExpenseDialogOpen} onOpenChange={setIsExpenseDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button onClick={() => { setEditingExpense(null); expenseForm.reset(); }}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    เพิ่มค่าใช้จ่าย
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>{editingExpense ? "แก้ไขค่าใช้จ่าย" : "เพิ่มค่าใช้จ่าย"}</DialogTitle>
-                  </DialogHeader>
-                  <Form {...expenseForm}>
-                    <form onSubmit={expenseForm.handleSubmit(handleSubmitExpense)} className="space-y-4">
-                      <FormField
-                        control={expenseForm.control}
-                        name="date"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>วันที่</FormLabel>
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <FormControl>
-                                  <Button variant="outline" className="w-full justify-start">
-                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {field.value ? format(field.value, "dd/MM/yyyy") : "เลือกวันที่"}
-                                  </Button>
-                                </FormControl>
-                              </PopoverTrigger>
-                              <PopoverContent>
-                                <Calendar
-                                  mode="single"
-                                  selected={field.value}
-                                  onSelect={field.onChange}
-                                  className="pointer-events-auto"
-                                />
-                              </PopoverContent>
-                            </Popover>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={expenseForm.control}
-                        name="type"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>ประเภท</FormLabel>
-                            <div className="flex gap-2">
-                              <Select value={field.value} onValueChange={field.onChange}>
-                                <SelectTrigger className="flex-1">
-                                  <SelectValue placeholder="เลือกประเภท" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {expenseTypes.map((type) => (
-                                    <SelectItem key={type.id} value={type.name}>
-                                      {type.name}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <Dialog open={isTypeDialogOpen} onOpenChange={setIsTypeDialogOpen}>
-                                <DialogTrigger asChild>
-                                  <Button type="button" variant="outline" size="icon">
-                                    <Plus className="h-4 w-4" />
-                                  </Button>
-                                </DialogTrigger>
-                                <DialogContent>
-                                  <DialogHeader>
-                                    <DialogTitle>เพิ่มประเภทค่าใช้จ่าย</DialogTitle>
-                                  </DialogHeader>
-                                  <Form {...expenseTypeForm}>
-                                    <form onSubmit={expenseTypeForm.handleSubmit(handleSubmitExpenseType)}>
-                                      <FormField
-                                        control={expenseTypeForm.control}
-                                        name="name"
-                                        render={({ field }) => (
-                                          <FormItem>
-                                            <FormLabel>ชื่อประเภท</FormLabel>
-                                            <FormControl>
-                                              <Input {...field} placeholder="ชื่อประเภทค่าใช้จ่าย" />
-                                            </FormControl>
-                                            <FormMessage />
-                                          </FormItem>
-                                        )}
-                                      />
-                                      <div className="flex justify-end mt-4">
-                                        <Button type="submit">บันทึก</Button>
-                                      </div>
-                                    </form>
-                                  </Form>
-                                </DialogContent>
-                              </Dialog>
-                            </div>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={expenseForm.control}
-                        name="amount"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>จำนวนเงิน</FormLabel>
-                            <FormControl>
-                              <Input
-                                type="number"
-                                step="0.01"
-                                {...field}
-                                onChange={(e) => field.onChange(e.target.value === "" ? "" : parseFloat(e.target.value))}
-                                placeholder="จำนวนเงิน"
+          <div className="flex gap-2">
+            <Dialog open={isExpenseDialogOpen} onOpenChange={setIsExpenseDialogOpen}>
+              <DialogTrigger asChild>
+                <Button 
+                  onClick={() => { setEditingExpense(null); expenseForm.reset(); }}
+                  className="bg-primary hover:bg-primary/90 shadow-glow"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  เพิ่มค่าใช้จ่าย
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="shadow-elegant">
+                <DialogHeader>
+                  <DialogTitle className="text-2xl text-primary">
+                    {editingExpense ? "แก้ไขค่าใช้จ่าย" : "เพิ่มค่าใช้จ่าย"}
+                  </DialogTitle>
+                </DialogHeader>
+                <Form {...expenseForm}>
+                  <form onSubmit={expenseForm.handleSubmit(handleSubmitExpense)} className="space-y-6">
+                    <FormField
+                      control={expenseForm.control}
+                      name="date"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-base font-semibold">วันที่</FormLabel>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <FormControl>
+                                <Button 
+                                  variant="outline" 
+                                  className="w-full justify-start border-primary/20 hover:border-primary/40"
+                                >
+                                  <CalendarIcon className="mr-2 h-4 w-4" />
+                                  {field.value ? format(field.value, "dd/MM/yyyy") : "เลือกวันที่"}
+                                </Button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar
+                                mode="single"
+                                selected={field.value}
+                                onSelect={field.onChange}
+                                className="p-3 pointer-events-auto"
                               />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <div className="flex justify-end gap-2">
-                        <Button type="button" variant="outline" onClick={() => setIsExpenseDialogOpen(false)}>
-                          ยกเลิก
-                        </Button>
-                        <Button type="submit">
-                          {editingExpense ? "บันทึกการแก้ไข" : "บันทึก"}
-                        </Button>
-                      </div>
-                    </form>
-                  </Form>
-                </DialogContent>
-              </Dialog>
+                            </PopoverContent>
+                          </Popover>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={expenseForm.control}
+                      name="type"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-base font-semibold">ประเภท</FormLabel>
+                          <div className="flex gap-2">
+                            <Select value={field.value} onValueChange={field.onChange}>
+                              <SelectTrigger className="flex-1 border-primary/20 focus:border-primary/40">
+                                <SelectValue placeholder="เลือกประเภท" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {expenseTypes.map((type) => (
+                                  <SelectItem key={type.id} value={type.name}>
+                                    {type.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Dialog open={isTypeDialogOpen} onOpenChange={setIsTypeDialogOpen}>
+                              <DialogTrigger asChild>
+                                <Button type="button" variant="outline" size="icon" className="border-primary/20 hover:border-primary/40">
+                                  <Plus className="h-4 w-4" />
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="shadow-elegant">
+                                <DialogHeader>
+                                  <DialogTitle className="text-xl text-primary">เพิ่มประเภทค่าใช้จ่าย</DialogTitle>
+                                </DialogHeader>
+                                <Form {...expenseTypeForm}>
+                                  <form onSubmit={expenseTypeForm.handleSubmit(handleSubmitExpenseType)} className="space-y-4">
+                                    <FormField
+                                      control={expenseTypeForm.control}
+                                      name="name"
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormLabel className="text-base font-semibold">ชื่อประเภท</FormLabel>
+                                          <FormControl>
+                                            <Input 
+                                              {...field} 
+                                              placeholder="ชื่อประเภทค่าใช้จ่าย" 
+                                              className="border-primary/20 focus:border-primary/40"
+                                            />
+                                          </FormControl>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
+                                    />
+                                    <div className="flex justify-end mt-4">
+                                      <Button type="submit" className="bg-primary hover:bg-primary/90">บันทึก</Button>
+                                    </div>
+                                  </form>
+                                </Form>
+                              </DialogContent>
+                            </Dialog>
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={expenseForm.control}
+                      name="amount"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-base font-semibold">จำนวนเงิน</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              {...field}
+                              onChange={(e) => field.onChange(e.target.value === "" ? "" : parseFloat(e.target.value))}
+                              placeholder="จำนวนเงิน"
+                              className="border-primary/20 focus:border-primary/40"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <div className="flex justify-end gap-2 pt-4">
+                      <Button type="button" variant="outline" onClick={() => setIsExpenseDialogOpen(false)}>
+                        ยกเลิก
+                      </Button>
+                      <Button type="submit" className="bg-primary hover:bg-primary/90">
+                        {editingExpense ? "บันทึกการแก้ไข" : "บันทึก"}
+                      </Button>
+                    </div>
+                  </form>
+                </Form>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Expenses Summary */}
+      {filteredExpenses.length > 0 && (
+        <Card className="shadow-elegant border-accent/20">
+          <CardHeader className="bg-gradient-to-r from-accent/5 to-transparent">
+            <CardTitle className="text-xl text-accent flex items-center gap-2">
+              <div className="w-2 h-6 bg-accent rounded-full"></div>
+              สรุปค่าใช้จ่าย
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-xl p-4 border border-primary/20">
+                <p className="text-sm text-muted-foreground mb-1">จำนวนรายการ</p>
+                <p className="text-2xl font-bold text-primary">{filteredExpenses.length}</p>
+              </div>
+              <div className="bg-gradient-to-r from-destructive/10 to-destructive/5 rounded-xl p-4 border border-destructive/20">
+                <p className="text-sm text-muted-foreground mb-1">ยอดรวมทั้งหมด</p>
+                <p className="text-2xl font-bold text-destructive">
+                  ฿{filteredExpenses.reduce((sum, expense) => sum + parseFloat(expense.amount.toString()), 0).toLocaleString()}
+                </p>
+              </div>
+              <div className="bg-gradient-to-r from-secondary/10 to-secondary/5 rounded-xl p-4 border border-secondary/20">
+                <p className="text-sm text-muted-foreground mb-1">ค่าเฉลี่ยต่อรายการ</p>
+                <p className="text-2xl font-bold text-secondary">
+                  ฿{Math.round(filteredExpenses.reduce((sum, expense) => sum + parseFloat(expense.amount.toString()), 0) / filteredExpenses.length).toLocaleString()}
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>
+      )}
 
-        {/* Expenses List */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {/* Expenses List */}
+      {paginatedExpenses.length > 0 ? (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {paginatedExpenses.map((expense) => (
-            <Card key={expense.id} className="hover:shadow-md transition-shadow">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex justify-between items-center">
-                  <span>{expense.type}</span>
-                  <span className="text-lg font-bold text-primary">
-                    ฿{parseFloat(expense.amount.toString()).toLocaleString()}
-                  </span>
+            <Card key={expense.id} className="shadow-elegant hover:shadow-glow transition-all duration-300 border-primary/10 hover:border-primary/20">
+              <CardHeader className="bg-gradient-to-r from-primary/5 to-transparent pb-4">
+                <CardTitle className="text-lg flex justify-between items-start gap-4">
+                  <div className="space-y-1">
+                    <span className="text-primary font-semibold">{expense.type}</span>
+                    <p className="text-sm text-muted-foreground font-normal">
+                      {format(new Date(expense.date), "dd/MM/yyyy")}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-2xl font-bold text-destructive">
+                      ฿{parseFloat(expense.amount.toString()).toLocaleString()}
+                    </span>
+                  </div>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground mb-4">
-                  วันที่: {format(new Date(expense.date), "dd/MM/yyyy")}
-                </p>
+              <CardContent className="pt-4">
                 <div className="flex justify-end gap-2">
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={() => handleEditExpense(expense)}
+                    className="border-primary/20 hover:border-primary/40 hover:bg-primary/5"
                   >
                     <Edit className="h-4 w-4" />
                   </Button>
@@ -456,6 +513,7 @@ export default function Expenses() {
                     size="sm"
                     variant="destructive"
                     onClick={() => handleDeleteExpense(expense.id)}
+                    className="hover:bg-destructive/90"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -464,38 +522,49 @@ export default function Expenses() {
             </Card>
           ))}
         </div>
+      ) : (
+        <Card className="shadow-elegant border-muted">
+          <CardContent className="text-center py-16">
+            <div className="bg-muted/30 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+              <Search className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <p className="text-xl font-semibold text-muted-foreground mb-2">ไม่พบข้อมูลค่าใช้จ่าย</p>
+            <p className="text-muted-foreground">ลองเปลี่ยนคำค้นหาหรือเพิ่มข้อมูลใหม่</p>
+          </CardContent>
+        </Card>
+      )}
 
-        {filteredExpenses.length === 0 && (
-          <Card>
-            <CardContent className="text-center py-12">
-              <p className="text-muted-foreground">ไม่พบข้อมูลค่าใช้จ่าย</p>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex justify-center mt-8 gap-2">
-            <Button
-              variant="outline"
-              disabled={currentPage === 1}
-              onClick={() => setCurrentPage(currentPage - 1)}
-            >
-              ก่อนหน้า
-            </Button>
-            <span className="flex items-center px-4">
-              หน้า {currentPage} จาก {totalPages}
-            </span>
-            <Button
-              variant="outline"
-              disabled={currentPage === totalPages}
-              onClick={() => setCurrentPage(currentPage + 1)}
-            >
-              ถัดไป
-            </Button>
-          </div>
-        )}
-      </div>
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <Card className="shadow-elegant border-primary/10">
+          <CardContent className="py-6">
+            <div className="flex justify-center items-center gap-4">
+              <Button
+                variant="outline"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(currentPage - 1)}
+                className="border-primary/20 hover:border-primary/40"
+              >
+                ก่อนหน้า
+              </Button>
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">หน้า</span>
+                <span className="text-lg font-bold text-primary">{currentPage}</span>
+                <span className="text-muted-foreground">จาก</span>
+                <span className="text-lg font-bold text-primary">{totalPages}</span>
+              </div>
+              <Button
+                variant="outline"
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(currentPage + 1)}
+                className="border-primary/20 hover:border-primary/40"
+              >
+                ถัดไป
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
