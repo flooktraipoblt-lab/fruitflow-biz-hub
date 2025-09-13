@@ -449,50 +449,6 @@ export default function Expenses() {
         </CardContent>
       </Card>
 
-        {/* Summary Cards */}
-        {filteredExpenses.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="shadow-elegant border-primary/10 bg-card">
-              <CardHeader className="bg-gradient-to-r from-primary/5 to-transparent pb-3">
-                <CardTitle className="text-lg text-primary flex items-center gap-2">
-                  <div className="w-2 h-5 bg-primary rounded-full"></div>
-                  รวมทั้งหมด
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-3">
-                <p className="text-3xl font-bold text-primary">
-                  ฿ {filteredExpenses.reduce((sum, expense) => sum + parseFloat(expense.amount.toString()), 0).toLocaleString()}
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="shadow-elegant border-secondary/10 bg-card">
-              <CardHeader className="bg-gradient-to-r from-secondary/5 to-transparent pb-3">
-                <CardTitle className="text-lg text-secondary flex items-center gap-2">
-                  <div className="w-2 h-5 bg-secondary rounded-full"></div>
-                  จำนวนรายการ
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-3">
-                <p className="text-3xl font-bold text-secondary">{filteredExpenses.length}</p>
-              </CardContent>
-            </Card>
-
-            <Card className="shadow-elegant border-accent/10 bg-card">
-              <CardHeader className="bg-gradient-to-r from-accent/5 to-transparent pb-3">
-                <CardTitle className="text-lg text-accent flex items-center gap-2">
-                  <div className="w-2 h-5 bg-accent rounded-full"></div>
-                  ค่าเฉลี่ย
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-3">
-                <p className="text-3xl font-bold text-accent">
-                  ฿ {Math.round(filteredExpenses.reduce((sum, expense) => sum + parseFloat(expense.amount.toString()), 0) / filteredExpenses.length).toLocaleString()}
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        )}
 
         {/* Expenses List */}
         <Card className="shadow-elegant border-primary/10 bg-card">
