@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -480,59 +481,69 @@ export default function Expenses() {
       )}
 
       {/* Expenses List */}
-      {paginatedExpenses.length > 0 ? (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {paginatedExpenses.map((expense) => (
-            <Card key={expense.id} className="shadow-elegant hover:shadow-glow transition-all duration-300 border-primary/10 hover:border-primary/20">
-              <CardHeader className="bg-gradient-to-r from-primary/5 to-transparent pb-4">
-                <CardTitle className="text-lg flex justify-between items-start gap-4">
-                  <div className="space-y-1">
-                    <span className="text-primary font-semibold">{expense.type}</span>
-                    <p className="text-sm text-muted-foreground font-normal">
-                      {format(new Date(expense.date), "dd/MM/yyyy")}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-2xl font-bold text-destructive">
-                      ฿{parseFloat(expense.amount.toString()).toLocaleString()}
-                    </span>
-                  </div>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-4">
-                <div className="flex justify-end gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleEditExpense(expense)}
-                    className="border-primary/20 hover:border-primary/40 hover:bg-primary/5"
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => handleDeleteExpense(expense.id)}
-                    className="hover:bg-destructive/90"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      ) : (
-        <Card className="shadow-elegant border-muted">
-          <CardContent className="text-center py-16">
-            <div className="bg-muted/30 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-              <Search className="h-8 w-8 text-muted-foreground" />
-            </div>
-            <p className="text-xl font-semibold text-muted-foreground mb-2">ไม่พบข้อมูลค่าใช้จ่าย</p>
-            <p className="text-muted-foreground">ลองเปลี่ยนคำค้นหาหรือเพิ่มข้อมูลใหม่</p>
-          </CardContent>
-        </Card>
-      )}
+      <Card className="shadow-elegant border-primary/10">
+        <CardHeader className="bg-gradient-to-r from-destructive/5 to-transparent">
+          <CardTitle className="text-xl text-destructive flex items-center gap-2">
+            <div className="w-2 h-6 bg-destructive rounded-full"></div>
+            รายการค่าใช้จ่าย
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-6">
+          <div className="rounded-lg border border-muted overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/30">
+                  <TableHead className="font-semibold">วันที่</TableHead>
+                  <TableHead className="font-semibold">ประเภท</TableHead>
+                  <TableHead className="text-right font-semibold">จำนวนเงิน</TableHead>
+                  <TableHead className="text-center font-semibold">จัดการ</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginatedExpenses.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                      ไม่พบรายการค่าใช้จ่าย
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  paginatedExpenses.map((expense) => (
+                    <TableRow key={expense.id} className="hover:bg-muted/20 transition-colors">
+                      <TableCell className="font-medium">{new Date(expense.date).toLocaleDateString('th-TH')}</TableCell>
+                      <TableCell>
+                        <span className="px-3 py-1 rounded-full text-sm font-medium bg-accent/10 text-accent-foreground border border-accent/20">
+                          {expense.type}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right font-semibold text-destructive">฿ {parseFloat(expense.amount.toString()).toLocaleString()}</TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex justify-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleEditExpense(expense)}
+                            className="border-primary/20 hover:border-primary/40 hover:bg-primary/5"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleDeleteExpense(expense.id)}
+                            className="border-destructive/20 hover:border-destructive/40 hover:bg-destructive/5 text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Pagination */}
       {totalPages > 1 && (
