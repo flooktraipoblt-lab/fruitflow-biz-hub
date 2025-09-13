@@ -253,7 +253,7 @@ export default function Expenses() {
   }
 
   return (
-    <div className="min-h-screen bg-expense-background">
+    <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8 space-y-8 animate-fade-in">
         <Helmet>
           <title>ค่าใช้จ่าย | ระบบจัดการร้านค้า</title>
@@ -261,16 +261,16 @@ export default function Expenses() {
         </Helmet>
 
         {/* Header Section */}
-        <div className="bg-gradient-to-r from-expense-primary/10 to-expense-accent/5 rounded-2xl p-8 border border-expense-primary/20 shadow-expense-elegant">
-          <h1 className="text-4xl font-bold text-expense-primary mb-2">ค่าใช้จ่าย</h1>
+        <div className="bg-gradient-to-r from-primary/10 to-secondary/5 rounded-2xl p-8 border border-primary/20 shadow-elegant">
+          <h1 className="text-4xl font-bold text-primary mb-2">ค่าใช้จ่าย</h1>
           <p className="text-muted-foreground">จัดการและติดตามค่าใช้จ่ายของร้านค้าอย่างมีประสิทธิภาพ</p>
         </div>
 
         {/* Search and Filters */}
-        <Card className="shadow-expense-elegant border-expense-primary/10 bg-expense-card">
-          <CardHeader className="bg-gradient-to-r from-expense-primary/5 to-transparent">
-            <CardTitle className="text-xl text-expense-primary flex items-center gap-2">
-              <div className="w-2 h-6 bg-expense-primary rounded-full"></div>
+        <Card className="shadow-elegant border-primary/10 bg-card">
+          <CardHeader className="bg-gradient-to-r from-primary/5 to-transparent">
+            <CardTitle className="text-xl text-primary flex items-center gap-2">
+              <div className="w-2 h-6 bg-primary rounded-full"></div>
               ค้นหาและกรองข้อมูล
             </CardTitle>
           </CardHeader>
@@ -283,12 +283,12 @@ export default function Expenses() {
                   placeholder="ค้นหาค่าใช้จ่าย..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 border-expense-primary/20 focus:border-expense-primary/40"
+                  className="pl-10 border-primary/20 focus:border-primary/40"
                 />
               </div>
             </div>
             <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-full md:w-[200px] border-expense-primary/20 focus:border-expense-primary/40">
+              <SelectTrigger className="w-full md:w-[200px] border-primary/20 focus:border-primary/40">
                 <SelectValue placeholder="เลือกประเภท" />
               </SelectTrigger>
               <SelectContent>
@@ -308,15 +308,15 @@ export default function Expenses() {
               <DialogTrigger asChild>
                 <Button 
                   onClick={() => { setEditingExpense(null); expenseForm.reset(); }}
-                  className="bg-expense-primary hover:bg-expense-primary/90 shadow-expense-glow animate-expense-glow"
+                  className="bg-primary hover:bg-primary/90 shadow-glow"
                 >
                   <Plus className="mr-2 h-4 w-4" />
                   เพิ่มค่าใช้จ่าย
                 </Button>
               </DialogTrigger>
-              <DialogContent className="shadow-expense-elegant bg-expense-card">
+              <DialogContent className="shadow-elegant bg-card">
                 <DialogHeader>
-                  <DialogTitle className="text-2xl text-expense-primary">
+                  <DialogTitle className="text-2xl text-primary">
                     {editingExpense ? "แก้ไขค่าใช้จ่าย" : "เพิ่มค่าใช้จ่าย"}
                   </DialogTitle>
                 </DialogHeader>
@@ -331,10 +331,10 @@ export default function Expenses() {
                           <Popover>
                             <PopoverTrigger asChild>
                               <FormControl>
-                                <Button 
-                                  variant="outline" 
-                                  className="w-full justify-start border-expense-primary/20 hover:border-expense-primary/40"
-                                >
+                                 <Button 
+                                   variant="outline" 
+                                   className="w-full justify-start border-primary/20 hover:border-primary/40"
+                                 >
                                   <CalendarIcon className="mr-2 h-4 w-4" />
                                   {field.value ? format(field.value, "dd/MM/yyyy") : "เลือกวันที่"}
                                 </Button>
@@ -360,8 +360,8 @@ export default function Expenses() {
                         <FormItem>
                           <FormLabel className="text-base font-semibold">ประเภท</FormLabel>
                           <div className="flex gap-2">
-                            <Select value={field.value} onValueChange={field.onChange}>
-                              <SelectTrigger className="flex-1 border-expense-primary/20 focus:border-expense-primary/40">
+                             <Select value={field.value} onValueChange={field.onChange}>
+                               <SelectTrigger className="flex-1 border-primary/20 focus:border-primary/40">
                                 <SelectValue placeholder="เลือกประเภท" />
                               </SelectTrigger>
                               <SelectContent>
@@ -374,13 +374,13 @@ export default function Expenses() {
                             </Select>
                             <Dialog open={isTypeDialogOpen} onOpenChange={setIsTypeDialogOpen}>
                               <DialogTrigger asChild>
-                                <Button type="button" variant="outline" size="icon" className="border-expense-primary/20 hover:border-expense-primary/40">
+                                <Button type="button" variant="outline" size="icon" className="border-primary/20 hover:border-primary/40">
                                   <Plus className="h-4 w-4" />
                                 </Button>
                               </DialogTrigger>
-              <DialogContent className="shadow-expense-elegant bg-expense-card">
+              <DialogContent className="shadow-elegant bg-card">
                 <DialogHeader>
-                  <DialogTitle className="text-xl text-expense-primary">เพิ่มประเภทค่าใช้จ่าย</DialogTitle>
+                  <DialogTitle className="text-xl text-primary">เพิ่มประเภทค่าใช้จ่าย</DialogTitle>
                 </DialogHeader>
                                 <Form {...expenseTypeForm}>
                                   <form onSubmit={expenseTypeForm.handleSubmit(handleSubmitExpenseType)} className="space-y-4">
@@ -391,18 +391,18 @@ export default function Expenses() {
                                         <FormItem>
                                           <FormLabel className="text-base font-semibold">ชื่อประเภท</FormLabel>
                                           <FormControl>
-                                            <Input 
-                                              {...field} 
-                                              placeholder="ชื่อประเภทค่าใช้จ่าย" 
-                                              className="border-expense-primary/20 focus:border-expense-primary/40"
-                                            />
+                                             <Input 
+                                               {...field} 
+                                               placeholder="ชื่อประเภทค่าใช้จ่าย" 
+                                               className="border-primary/20 focus:border-primary/40"
+                                             />
                                           </FormControl>
                                           <FormMessage />
                                         </FormItem>
                                       )}
                                     />
                                     <div className="flex justify-end mt-4">
-                                      <Button type="submit" className="bg-expense-primary hover:bg-expense-primary/90">บันทึก</Button>
+                                      <Button type="submit" className="bg-primary hover:bg-primary/90">บันทึก</Button>
                                     </div>
                                   </form>
                                 </Form>
@@ -426,7 +426,7 @@ export default function Expenses() {
                               {...field}
                               onChange={(e) => field.onChange(e.target.value === "" ? "" : parseFloat(e.target.value))}
                               placeholder="จำนวนเงิน"
-                              className="border-expense-primary/20 focus:border-expense-primary/40"
+                              className="border-primary/20 focus:border-primary/40"
                             />
                           </FormControl>
                           <FormMessage />
@@ -452,41 +452,41 @@ export default function Expenses() {
         {/* Summary Cards */}
         {filteredExpenses.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="shadow-expense-elegant border-expense-primary/10 bg-expense-card">
-              <CardHeader className="bg-gradient-to-r from-expense-primary/5 to-transparent pb-3">
-                <CardTitle className="text-lg text-expense-primary flex items-center gap-2">
-                  <div className="w-2 h-5 bg-expense-primary rounded-full"></div>
+            <Card className="shadow-elegant border-primary/10 bg-card">
+              <CardHeader className="bg-gradient-to-r from-primary/5 to-transparent pb-3">
+                <CardTitle className="text-lg text-primary flex items-center gap-2">
+                  <div className="w-2 h-5 bg-primary rounded-full"></div>
                   รวมทั้งหมด
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-3">
-                <p className="text-3xl font-bold text-expense-primary">
+                <p className="text-3xl font-bold text-primary">
                   ฿ {filteredExpenses.reduce((sum, expense) => sum + parseFloat(expense.amount.toString()), 0).toLocaleString()}
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="shadow-expense-elegant border-expense-secondary/10 bg-expense-card">
-              <CardHeader className="bg-gradient-to-r from-expense-secondary/5 to-transparent pb-3">
-                <CardTitle className="text-lg text-expense-secondary flex items-center gap-2">
-                  <div className="w-2 h-5 bg-expense-secondary rounded-full"></div>
+            <Card className="shadow-elegant border-secondary/10 bg-card">
+              <CardHeader className="bg-gradient-to-r from-secondary/5 to-transparent pb-3">
+                <CardTitle className="text-lg text-secondary flex items-center gap-2">
+                  <div className="w-2 h-5 bg-secondary rounded-full"></div>
                   จำนวนรายการ
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-3">
-                <p className="text-3xl font-bold text-expense-secondary">{filteredExpenses.length}</p>
+                <p className="text-3xl font-bold text-secondary">{filteredExpenses.length}</p>
               </CardContent>
             </Card>
 
-            <Card className="shadow-expense-elegant border-expense-accent/10 bg-expense-card">
-              <CardHeader className="bg-gradient-to-r from-expense-accent/5 to-transparent pb-3">
-                <CardTitle className="text-lg text-expense-accent flex items-center gap-2">
-                  <div className="w-2 h-5 bg-expense-accent rounded-full"></div>
+            <Card className="shadow-elegant border-accent/10 bg-card">
+              <CardHeader className="bg-gradient-to-r from-accent/5 to-transparent pb-3">
+                <CardTitle className="text-lg text-accent flex items-center gap-2">
+                  <div className="w-2 h-5 bg-accent rounded-full"></div>
                   ค่าเฉลี่ย
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-3">
-                <p className="text-3xl font-bold text-expense-accent">
+                <p className="text-3xl font-bold text-accent">
                   ฿ {Math.round(filteredExpenses.reduce((sum, expense) => sum + parseFloat(expense.amount.toString()), 0) / filteredExpenses.length).toLocaleString()}
                 </p>
               </CardContent>
@@ -495,10 +495,10 @@ export default function Expenses() {
         )}
 
         {/* Expenses List */}
-        <Card className="shadow-expense-elegant border-expense-primary/10 bg-expense-card">
-          <CardHeader className="bg-gradient-to-r from-expense-primary/5 to-transparent">
-            <CardTitle className="text-xl text-expense-primary flex items-center gap-2">
-              <div className="w-2 h-6 bg-expense-primary rounded-full"></div>
+        <Card className="shadow-elegant border-primary/10 bg-card">
+          <CardHeader className="bg-gradient-to-r from-primary/5 to-transparent">
+            <CardTitle className="text-xl text-primary flex items-center gap-2">
+              <div className="w-2 h-6 bg-primary rounded-full"></div>
               รายการค่าใช้จ่าย
             </CardTitle>
           </CardHeader>
@@ -525,18 +525,18 @@ export default function Expenses() {
                     <TableRow key={expense.id} className="hover:bg-muted/20 transition-colors">
                       <TableCell className="font-medium">{new Date(expense.date).toLocaleDateString('th-TH')}</TableCell>
                       <TableCell>
-                        <span className="px-3 py-1 rounded-full text-sm font-medium bg-expense-secondary/10 text-expense-secondary border border-expense-secondary/20">
+                        <span className="px-3 py-1 rounded-full text-sm font-medium bg-secondary/10 text-secondary border border-secondary/20">
                           {expense.type}
                         </span>
                       </TableCell>
-                      <TableCell className="text-right font-semibold text-expense-primary">฿ {parseFloat(expense.amount.toString()).toLocaleString()}</TableCell>
+                      <TableCell className="text-right font-semibold text-primary">฿ {parseFloat(expense.amount.toString()).toLocaleString()}</TableCell>
                       <TableCell className="text-center">
                         <div className="flex justify-center gap-2">
                           <Button
                             variant="outline"
                             size="icon"
                             onClick={() => handleEditExpense(expense)}
-                            className="border-expense-primary/20 hover:border-expense-primary/40 hover:bg-expense-primary/5"
+                            className="border-primary/20 hover:border-primary/40 hover:bg-primary/5"
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
@@ -544,7 +544,7 @@ export default function Expenses() {
                             variant="outline"
                             size="icon"
                             onClick={() => handleDeleteExpense(expense.id)}
-                            className="border-expense-primary/20 hover:border-expense-primary/40 hover:bg-expense-primary/5 text-expense-primary"
+                            className="border-primary/20 hover:border-primary/40 hover:bg-primary/5 text-primary"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -561,28 +561,28 @@ export default function Expenses() {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <Card className="shadow-expense-elegant border-expense-primary/10 bg-expense-card">
+          <Card className="shadow-elegant border-primary/10 bg-card">
             <CardContent className="py-6">
               <div className="flex justify-center items-center gap-4">
                 <Button
                   variant="outline"
                   disabled={currentPage === 1}
                   onClick={() => setCurrentPage(currentPage - 1)}
-                  className="border-expense-primary/20 hover:border-expense-primary/40"
+                  className="border-primary/20 hover:border-primary/40"
               >
                 ก่อนหน้า
               </Button>
               <div className="flex items-center gap-2">
                 <span className="text-muted-foreground">หน้า</span>
-                  <span className="text-lg font-bold text-expense-primary">{currentPage}</span>
+                  <span className="text-lg font-bold text-primary">{currentPage}</span>
                   <span className="text-muted-foreground">จาก</span>
-                  <span className="text-lg font-bold text-expense-primary">{totalPages}</span>
+                  <span className="text-lg font-bold text-primary">{totalPages}</span>
                 </div>
                 <Button
                 variant="outline"
                 disabled={currentPage === totalPages}
                   onClick={() => setCurrentPage(currentPage + 1)}
-                  className="border-expense-primary/20 hover:border-expense-primary/40"
+                  className="border-primary/20 hover:border-primary/40"
               >
                 ถัดไป
               </Button>
