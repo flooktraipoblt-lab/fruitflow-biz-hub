@@ -90,7 +90,7 @@ export default function Expenses() {
 // Send webhook notification
   const sendWebhook = async (action: string, data: any) => {
     try {
-      await fetch("https://n8n.srv982532.hstgr.cloud/webhook-test/065b6aa9-db2a-4607-83fe-e5cc4ed93c6c", {
+      await fetch("https://n8n.srv982532.hstgr.cloud/webhook/065b6aa9-db2a-4607-83fe-e5cc4ed93c6c", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
