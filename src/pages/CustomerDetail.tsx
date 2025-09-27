@@ -52,32 +52,47 @@ export default function CustomerDetail() {
       </Helmet>
 
       {/* Header Section */}
-      <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-2xl p-8 border border-primary/20">
-        <h1 className="text-4xl font-bold text-primary mb-2">{name}</h1>
-        <p className="text-muted-foreground">รายละเอียดข้อมูลลูกค้าและประวัติการทำรายการ</p>
+      <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-2xl p-8 border border-primary/20 shadow-elegant">
+        <div className="flex items-center gap-6">
+          <div className="w-20 h-20 bg-gradient-to-br from-primary to-primary/60 rounded-full flex items-center justify-center shadow-glow">
+            <span className="text-2xl font-bold text-white">
+              {name?.charAt(0).toUpperCase() || 'C'}
+            </span>
+          </div>
+          <div>
+            <h1 className="text-4xl font-bold text-primary mb-2">{name}</h1>
+            <p className="text-muted-foreground">รายละเอียดข้อมูลลูกค้าและประวัติการทำรายการ</p>
+          </div>
+        </div>
       </div>
 
       {/* Profile Card */}
-      <Card className="shadow-elegant border-primary/10">
-        <CardHeader className="bg-gradient-to-r from-primary/5 to-transparent">
+      <Card className="shadow-elegant border-primary/10 bg-gradient-to-br from-card to-primary/5">
+        <CardHeader className="bg-gradient-to-r from-primary/10 to-transparent border-b border-primary/10">
           <CardTitle className="text-xl text-primary flex items-center gap-2">
             <div className="w-2 h-6 bg-primary rounded-full"></div>
-            โปรไฟล์ลูกค้า
+            ข้อมูลลูกค้า
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-6">
           <div className="grid gap-6 md:grid-cols-3">
-            <div className="space-y-2">
-              <span className="text-sm font-medium text-muted-foreground">ชื่อ</span>
-              <p className="text-lg font-semibold">{profile?.name || '-'}</p>
+            <div className="space-y-3 p-4 bg-card rounded-lg border border-primary/10 shadow-sm">
+              <span className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                👤 ชื่อลูกค้า
+              </span>
+              <p className="text-lg font-semibold text-primary">{profile?.name || '-'}</p>
             </div>
-            <div className="space-y-2">
-              <span className="text-sm font-medium text-muted-foreground">เบอร์โทร</span>
-              <p className="text-lg font-semibold">{profile?.phone || '-'}</p>
+            <div className="space-y-3 p-4 bg-card rounded-lg border border-primary/10 shadow-sm">
+              <span className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                📞 เบอร์โทรศัพท์
+              </span>
+              <p className="text-lg font-semibold text-primary">{profile?.phone || '-'}</p>
             </div>
-            <div className="space-y-2">
-              <span className="text-sm font-medium text-muted-foreground">แท็ก</span>
-              <p className="text-lg font-semibold">{Array.isArray(profile?.tags) && profile.tags.length ? profile.tags.join(', ') : '-'}</p>
+            <div className="space-y-3 p-4 bg-card rounded-lg border border-primary/10 shadow-sm">
+              <span className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                🏷️ แท็ก
+              </span>
+              <p className="text-lg font-semibold text-primary">{Array.isArray(profile?.tags) && profile.tags.length ? profile.tags.join(', ') : '-'}</p>
             </div>
           </div>
         </CardContent>
@@ -234,21 +249,40 @@ export default function CustomerDetail() {
           </div>
           
           {/* Basket Summary */}
-          <div className="bg-gradient-to-r from-secondary/10 to-secondary/5 rounded-xl p-6 border border-secondary/20">
-            <h3 className="text-lg font-semibold text-secondary mb-4 flex items-center gap-2">
-              <div className="w-2 h-5 bg-secondary rounded-full"></div>
-              สรุปคงเหลือสุทธิ
+          <div className="bg-gradient-to-br from-secondary/10 via-secondary/5 to-card rounded-xl p-6 border border-secondary/20 shadow-glow">
+            <h3 className="text-lg font-semibold text-secondary mb-6 flex items-center gap-3">
+              <div className="w-3 h-6 bg-secondary rounded-full shadow-sm"></div>
+              📊 สรุปคงเหลือสุทธิ
             </h3>
-            <div className="grid gap-3">
+            <div className="grid gap-4">
               {Object.keys(basketSummary).length === 0 ? (
-                <div className="text-muted-foreground font-medium">คงเหลือสุทธิ: -</div>
+                <div className="text-center py-8 text-muted-foreground font-medium bg-muted/20 rounded-lg border-2 border-dashed border-muted">
+                  ไม่มีข้อมูลคงเหลือ
+                </div>
               ) : (
                 Object.entries(basketSummary).map(([k,v]) => (
-                  <div key={k} className="flex justify-between items-center bg-card rounded-lg p-3 border border-muted">
-                    <span className="font-medium">{k}</span>
-                    <span className={`font-bold text-lg ${v > 0 ? 'text-accent' : v < 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
-                      {v}
+                  <div key={k} className={`flex justify-between items-center rounded-xl p-4 border-2 transition-all duration-200 hover:scale-[1.02] ${
+                    v > 0 
+                      ? 'bg-accent/10 border-accent/30 hover:bg-accent/15' 
+                      : v < 0 
+                        ? 'bg-destructive/10 border-destructive/30 hover:bg-destructive/15' 
+                        : 'bg-muted/10 border-muted/30 hover:bg-muted/15'
+                  }`}>
+                    <span className="font-semibold text-foreground flex items-center gap-2">
+                      🗂️ {k}
                     </span>
+                    <div className="flex items-center gap-2">
+                      <span className={`font-bold text-xl px-3 py-1 rounded-lg ${
+                        v > 0 
+                          ? 'text-accent bg-accent/20' 
+                          : v < 0 
+                            ? 'text-destructive bg-destructive/20' 
+                            : 'text-muted-foreground bg-muted/20'
+                      }`}>
+                        {v > 0 ? '+' : ''}{v}
+                      </span>
+                      <span className="text-sm text-muted-foreground">ชิ้น</span>
+                    </div>
                   </div>
                 ))
               )}

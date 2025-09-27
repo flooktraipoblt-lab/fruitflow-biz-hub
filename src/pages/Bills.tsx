@@ -239,7 +239,7 @@ export default function Bills() {
             <Button onClick={() => refetch()}>ค้นหา</Button>
             <Button variant="secondary" onClick={() => { setQ(""); setType("all"); setStatus("all"); setRange({}); }}>รีเซ็ตตัวกรอง</Button>
             <FilteredExportButton 
-              data={rows} 
+              data={filtered} 
               filename="bills.csv" 
               type="bills" 
               onExport={() => {}} 

@@ -20,11 +20,13 @@ interface FilteredExportButtonProps {
 export function FilteredExportButton({ data, filename, type, onExport }: FilteredExportButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [expenseFilter, setExpenseFilter] = useState<string>("all");
   const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
 
   const handleExport = () => {
     const filters = {
       type: typeFilter,
+      expenseFilter,
       dateRange,
     };
     
@@ -33,6 +35,15 @@ export function FilteredExportButton({ data, filename, type, onExport }: Filtere
     // Apply type filter for bills
     if (type === 'bills' && typeFilter !== "all") {
       filteredData = filteredData.filter(item => item.type === typeFilter);
+    }
+
+    // Apply expense filter for expenses
+    if (type === 'expenses' && expenseFilter !== "all") {
+      if (expenseFilter === "expenses") {
+        filteredData = filteredData.filter(item => item.source === 'expense');
+      } else if (expenseFilter === "withdrawals") {
+        filteredData = filteredData.filter(item => item.source === 'withdrawal');
+      }
     }
 
     // Apply date range filter
@@ -88,6 +99,7 @@ export function FilteredExportButton({ data, filename, type, onExport }: Filtere
 
   const resetFilters = () => {
     setTypeFilter("all");
+    setExpenseFilter("all");
     setDateRange({});
   };
 
@@ -119,6 +131,22 @@ export function FilteredExportButton({ data, filename, type, onExport }: Filtere
                     <SelectItem value="all">ทุกประเภท</SelectItem>
                     <SelectItem value="buy">บิลซื้อ</SelectItem>
                     <SelectItem value="sell">บิลขาย</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {type === 'expenses' && (
+              <div className="space-y-2">
+                <Label>ประเภทข้อมูล</Label>
+                <Select value={expenseFilter} onValueChange={setExpenseFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="เลือกประเภท" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">ค่าใช้จ่าย + รายการเบิก</SelectItem>
+                    <SelectItem value="expenses">รายการค่าใช้จ่าย</SelectItem>
+                    <SelectItem value="withdrawals">รายการเบิก</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

@@ -535,11 +535,11 @@ export default function Expenses() {
                   paginatedExpenses.map((expense) => (
                     <TableRow key={expense.id} className="hover:bg-muted/20 transition-colors">
                       <TableCell className="font-medium">{new Date(expense.date).toLocaleDateString('th-TH')}</TableCell>
-                      <TableCell>
-                        <span className="px-3 py-1 rounded-full text-sm font-medium bg-secondary/10 text-secondary border border-secondary/20">
-                          {expense.type}
-                        </span>
-                      </TableCell>
+                       <TableCell>
+                         <span className="px-3 py-1 rounded-full text-sm font-medium bg-secondary/10 text-foreground border border-secondary/20">
+                           {expense.type}
+                         </span>
+                       </TableCell>
                       <TableCell className="text-right font-semibold text-primary">฿ {parseFloat(expense.amount.toString()).toLocaleString()}</TableCell>
                       <TableCell className="text-center">
                         <div className="flex justify-center gap-2">
