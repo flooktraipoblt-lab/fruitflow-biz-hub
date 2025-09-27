@@ -17,6 +17,7 @@ import { format } from "date-fns";
 import { CalendarIcon, Plus, Edit, Trash2, Search } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { ExportButton } from "@/components/common/ExportButton";
+import { FilteredExportButton } from "@/components/common/FilteredExportButton";
 import { useAuthData } from "@/hooks/useAuthData";
 import { Helmet } from "react-helmet-async";
 
@@ -70,6 +71,35 @@ export default function Expenses() {
         .order("date", { ascending: false });
       if (error) throw error;
       return data;
+    },
+    enabled: !!session,
+  });
+
+  // Fetch employee withdrawals to show as expenses
+  const { data: employeeWithdrawals = [] } = useQuery({
+    queryKey: ["employee-withdrawals-expenses"],
+    queryFn: async () => {
+      const { data: withdrawals, error: withdrawalsError } = await supabase
+        .from("employee_withdrawals")
+        .select("*")
+        .order("date", { ascending: false });
+      if (withdrawalsError) throw withdrawalsError;
+
+      const { data: employees, error: employeesError } = await supabase
+        .from("employees")
+        .select("id, name");
+      if (employeesError) throw employeesError;
+
+      // Combine withdrawal data with employee names
+      const withdrawalsWithNames = withdrawals?.map(withdrawal => {
+        const employee = employees?.find(emp => emp.id === withdrawal.employee_id);
+        return {
+          ...withdrawal,
+          employee_name: employee?.name || 'ไม่ระบุ'
+        };
+      }) || [];
+
+      return withdrawalsWithNames;
     },
     enabled: !!session,
   });
@@ -199,16 +229,36 @@ export default function Expenses() {
     },
   });
 
+  // Combine expenses and employee withdrawals
+  const combinedExpenses = useMemo(() => {
+    const regularExpenses = expenses.map(expense => ({
+      ...expense,
+      source: 'expense'
+    }));
+    
+    const withdrawalExpenses = employeeWithdrawals.map(withdrawal => ({
+      id: withdrawal.id,
+      date: withdrawal.date,
+      type: `เบิกเงินพนักงาน - ${withdrawal.employee_name}`,
+      amount: withdrawal.amount,
+      source: 'withdrawal'
+    }));
+    
+    return [...regularExpenses, ...withdrawalExpenses].sort((a, b) => 
+      new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+  }, [expenses, employeeWithdrawals]);
+
   // Filter expenses
   const filteredExpenses = useMemo(() => {
-    return expenses.filter((expense) => {
+    return combinedExpenses.filter((expense) => {
       const matchesSearch = 
         expense.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
         expense.amount.toString().includes(searchTerm);
       const matchesType = typeFilter === "all" || expense.type === typeFilter;
       return matchesSearch && matchesType;
     });
-  }, [expenses, searchTerm, typeFilter]);
+  }, [combinedExpenses, searchTerm, typeFilter]);
 
   // Paginated expenses
   const paginatedExpenses = useMemo(() => {
@@ -300,7 +350,12 @@ export default function Expenses() {
                 ))}
               </SelectContent>
             </Select>
-            <ExportButton data={filteredExpenses} filename="expenses.csv" />
+            <FilteredExportButton 
+              data={combinedExpenses} 
+              filename="expenses.csv" 
+              type="expenses" 
+              onExport={() => {}} 
+            />
           </div>
 
           <div className="flex gap-2">

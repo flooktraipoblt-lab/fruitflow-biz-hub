@@ -183,17 +183,36 @@ export default function Employees() {
   // Create withdrawal mutation
   const createWithdrawalMutation = useMutation({
     mutationFn: async (data: WithdrawalFormData & { employee_id: string }) => {
-      const { error } = await supabase.from("employee_withdrawals").insert({
+      // First, get employee name for expense record
+      const { data: employee, error: empError } = await supabase
+        .from("employees")
+        .select("name")
+        .eq("id", data.employee_id)
+        .single();
+      if (empError) throw empError;
+
+      // Create withdrawal record
+      const { error: withdrawalError } = await supabase.from("employee_withdrawals").insert({
         employee_id: data.employee_id,
         date: data.date.toISOString(),
         type: data.type,
         amount: data.amount,
         owner_id: session?.user.id,
       });
-      if (error) throw error;
+      if (withdrawalError) throw withdrawalError;
+
+      // Create corresponding expense record
+      const { error: expenseError } = await supabase.from("expenses").insert({
+        date: data.date.toISOString(),
+        type: `เบิกเงินพนักงาน - ${employee.name}`,
+        amount: data.amount,
+        owner_id: session?.user.id,
+      });
+      if (expenseError) throw expenseError;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["employee-withdrawals"] });
+      queryClient.invalidateQueries({ queryKey: ["expenses"] });
       toast({ title: "บันทึกการเบิกเงินสำเร็จ" });
       withdrawalForm.reset();
       setIsWithdrawalDialogOpen(false);

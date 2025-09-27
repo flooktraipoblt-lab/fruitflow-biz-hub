@@ -14,6 +14,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { FilteredExportButton } from "@/components/common/FilteredExportButton";
 interface BillRow {
   id: string;
   date: Date;
@@ -237,6 +238,12 @@ export default function Bills() {
           <div className="lg:col-span-5 flex items-center gap-2">
             <Button onClick={() => refetch()}>ค้นหา</Button>
             <Button variant="secondary" onClick={() => { setQ(""); setType("all"); setStatus("all"); setRange({}); }}>รีเซ็ตตัวกรอง</Button>
+            <FilteredExportButton 
+              data={rows} 
+              filename="bills.csv" 
+              type="bills" 
+              onExport={() => {}} 
+            />
           </div>
         </CardContent>
       </Card>
