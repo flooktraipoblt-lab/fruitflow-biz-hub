@@ -49,14 +49,14 @@ export function FilteredExportButton({ data, filename, type, onExport }: Filtere
     // Apply date range filter
     if (dateRange.from) {
       filteredData = filteredData.filter(item => {
-        const itemDate = new Date(item.bill_date || item.date);
+        const itemDate = type === 'bills' ? new Date(item.date) : new Date(item.date);
         return itemDate >= dateRange.from!;
       });
     }
 
     if (dateRange.to) {
       filteredData = filteredData.filter(item => {
-        const itemDate = new Date(item.bill_date || item.date);
+        const itemDate = type === 'bills' ? new Date(item.date) : new Date(item.date);
         return itemDate <= dateRange.to!;
       });
     }
@@ -65,7 +65,7 @@ export function FilteredExportButton({ data, filename, type, onExport }: Filtere
     let exportData;
     if (type === 'bills') {
       exportData = filteredData.map(item => ({
-        'วันที่': format(new Date(item.bill_date), 'dd/MM/yyyy'),
+        'วันที่': format(new Date(item.date), 'dd/MM/yyyy'),
         'ประเภท': item.type === 'buy' ? 'บิลซื้อ' : 'บิลขาย',
         'ชื่อลูกค้า': item.customer,
         'จำนวนเงิน': item.total
