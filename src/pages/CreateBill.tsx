@@ -893,9 +893,83 @@ export default function CreateBill() {
                 return;
               }
               
-              // Save orange bill logic here
-              toast({ title: "บันทึกบิลส้มสำเร็จ" });
-              navigate("/bills");
+              try {
+                // Calculate total amount
+                const totalAmount = orangeItems.reduce((sum, item) => {
+                  const qty = Number(item.qty) || 0;
+                  const weight = Number(item.weight) || 0;
+                  const fraction = Number(item.fraction) || 0;
+                  const price = Number(item.price) || 0;
+                  const totalWeight = qty * weight + fraction;
+                  const amount = totalWeight * price;
+                  return sum + amount;
+                }, 0);
+                
+                const processingPrice = Number(orangeProcessingPriceKg) || 0;
+                const totalWeight = orangeItems.reduce((sum, item) => {
+                  const qty = Number(item.qty) || 0;
+                  const weight = Number(item.weight) || 0;
+                  const fraction = Number(item.fraction) || 0;
+                  return sum + (qty * weight + fraction);
+                }, 0);
+                
+                const processingCost = totalWeight * processingPrice;
+                const paperCost = Number(orangePaperCost) || 0;
+                const grandTotal = totalAmount + processingCost + paperCost;
+                
+                // Check if customer exists, if not add them
+                const { data: existingCustomer } = await (supabase as any)
+                  .from("customers")
+                  .select("id")
+                  .eq("name", customer)
+                  .maybeSingle();
+                
+                if (!existingCustomer) {
+                  const { error: custErr } = await (supabase as any)
+                    .from("customers")
+                    .insert({ name: customer, phone: orangePhone });
+                  if (custErr) throw custErr;
+                }
+                
+                // Insert bill
+                const { data: newBill, error: billErr } = await (supabase as any)
+                  .from("bills")
+                  .insert({
+                    bill_date: date.toISOString(),
+                    customer,
+                    type: "sell",
+                    total: grandTotal,
+                    status: "due",
+                  })
+                  .select()
+                  .single();
+                
+                if (billErr) throw billErr;
+                
+                // Insert items
+                const itemsToInsert = orangeItems
+                  .filter(it => it.name && (it.qty || it.weight || it.price))
+                  .map(it => ({
+                    bill_id: newBill.id,
+                    name: it.name,
+                    qty: Number(it.qty) || 0,
+                    weight: Number(it.weight) || 0,
+                    fraction: Number(it.fraction) || 0,
+                    price: Number(it.price) || 0,
+                  }));
+                
+                if (itemsToInsert.length > 0) {
+                  const { error: itemsErr } = await (supabase as any)
+                    .from("bill_items")
+                    .insert(itemsToInsert);
+                  if (itemsErr) throw itemsErr;
+                }
+                
+                toast({ title: "บันทึกบิลส้มสำเร็จ" });
+                navigate("/bills");
+              } catch (err: any) {
+                toast({ title: "เกิดข้อผิดพลาด", description: err.message, variant: "destructive" });
+              }
             }}>
               บันทึกบิลส้ม
             </Button>
