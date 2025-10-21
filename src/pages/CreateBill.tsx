@@ -49,7 +49,7 @@ export default function CreateBill() {
   // Orange bill specific states
   const [orangePhone, setOrangePhone] = useState("");
   const [orangeBasketQty, setOrangeBasketQty] = useState<number | "">("");
-  const [orangeItems, setOrangeItems] = useState<any[]>([{ id: crypto.randomUUID(), number: "", qty: "", fraction: "", weight: "", price: "" }]);
+  const [orangeItems, setOrangeItems] = useState<ItemRow[]>([{ id: crypto.randomUUID(), name: "", qty: "", weight: "", fraction: "", price: "" }]);
   const [orangeWeightPerBasket, setOrangeWeightPerBasket] = useState<number | "">("");
   const [orangeProcessingPriceKg, setOrangeProcessingPriceKg] = useState<number | "">("");
   const [orangePaperCost, setOrangePaperCost] = useState<number | "">("");
@@ -709,88 +709,71 @@ export default function CreateBill() {
           <Card>
             <CardHeader>
               <CardTitle>รายการสินค้า</CardTitle>
-              <CardDescription>[(จำนวน x ราคา) + เศษ] = จำนวนเงิน</CardDescription>
+              <CardDescription>น้ำหนักรวม = จำนวน x น้ำหนัก + เศษ | จำนวนเงิน = น้ำหนักรวม x ราคา</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse border border-border">
-                  <thead>
-                    <tr className="bg-muted">
-                      <th className="border border-border p-2">เบอร์</th>
-                      <th className="border border-border p-2">จำนวน</th>
-                      <th className="border border-border p-2">ราคา</th>
-                      <th className="border border-border p-2">เศษ</th>
-                      <th className="border border-border p-2">น้ำหนัก(กก.)</th>
-                      <th className="border border-border p-2">จำนวนเงิน (auto)</th>
-                      <th className="border border-border p-2"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {orangeItems.map((item, idx) => {
-                      const qty = Number(item.qty) || 0;
-                      const price = Number(item.price) || 0;
-                      const fraction = Number(item.fraction) || 0;
-                      const amount = (qty * price) + fraction;
-                      
-                      return (
-                        <tr key={item.id}>
-                          <td className="border border-border p-1">
-                            <Input type="text" value={item.number} onChange={(e) => {
-                              const newItems = [...orangeItems];
-                              newItems[idx].number = e.target.value;
-                              setOrangeItems(newItems);
-                            }} placeholder="" className="h-8" />
-                          </td>
-                          <td className="border border-border p-1">
-                            <Input type="number" value={item.qty} onChange={(e) => {
-                              const newItems = [...orangeItems];
-                              newItems[idx].qty = e.target.value;
-                              setOrangeItems(newItems);
-                            }} placeholder="0" className="h-8" />
-                          </td>
-                          <td className="border border-border p-1">
-                            <Input type="number" value={item.price} onChange={(e) => {
-                              const newItems = [...orangeItems];
-                              newItems[idx].price = e.target.value;
-                              setOrangeItems(newItems);
-                            }} placeholder="0" className="h-8" />
-                          </td>
-                          <td className="border border-border p-1">
-                            <Input type="number" value={item.fraction} onChange={(e) => {
-                              const newItems = [...orangeItems];
-                              newItems[idx].fraction = e.target.value;
-                              setOrangeItems(newItems);
-                            }} placeholder="0" className="h-8" />
-                          </td>
-                          <td className="border border-border p-1">
-                            <Input type="number" value={item.weight} onChange={(e) => {
-                              const newItems = [...orangeItems];
-                              newItems[idx].weight = e.target.value;
-                              setOrangeItems(newItems);
-                            }} placeholder="0" className="h-8" />
-                          </td>
-                          <td className="border border-border p-1">
-                            <Input type="number" value={amount.toFixed(2)} readOnly className="h-8 bg-muted" />
-                          </td>
-                          <td className="border border-border p-1">
-                            <Button variant="ghost" size="sm" onClick={() => {
-                              setOrangeItems(orangeItems.filter((_, i) => i !== idx));
-                            }} disabled={orangeItems.length === 1} className="h-8">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+              {orangeItems.map((item, idx) => {
+                const qty = Number(item.qty) || 0;
+                const weight = Number(item.weight) || 0;
+                const fraction = Number(item.fraction) || 0;
+                const price = Number(item.price) || 0;
+                const totalWeight = qty * weight + fraction;
+                const amount = totalWeight * price;
+
+                return (
+                  <div key={item.id} className="grid gap-2 md:grid-cols-8 items-end rounded-md border p-3">
+                    <div className="grid gap-1 md:col-span-2">
+                      <Label>ชื่อสินค้า</Label>
+                      <Autocomplete
+                        value={item.name}
+                        onValueChange={(value) => setOrangeItems((s) => s.map((x) => x.id === item.id ? { ...x, name: value } : x))}
+                        options={itemNames}
+                        placeholder="ค้นหาหรือกรอกชื่อสินค้า"
+                        emptyText="ไม่พบสินค้า"
+                      />
+                    </div>
+                    <div className="grid gap-1">
+                      <Label>จำนวน</Label>
+                      <Input type="number" value={item.qty} onChange={(e) => setOrangeItems((s) => s.map((x) => x.id === item.id ? { ...x, qty: e.target.value === "" ? "" : Number(e.target.value) } : x))} placeholder="จำนวน" />
+                    </div>
+                    <div className="grid gap-1">
+                      <Label>น้ำหนัก</Label>
+                      <Input type="number" value={item.weight} onChange={(e) => setOrangeItems((s) => s.map((x) => x.id === item.id ? { ...x, weight: e.target.value === "" ? "" : Number(e.target.value) } : x))} placeholder="น้ำหนัก" />
+                    </div>
+                    <div className="grid gap-1">
+                      <Label>เศษ</Label>
+                      <Input type="number" value={item.fraction} onChange={(e) => setOrangeItems((s) => s.map((x) => x.id === item.id ? { ...x, fraction: e.target.value === "" ? "" : Number(e.target.value) } : x))} placeholder="เศษ" />
+                    </div>
+                    <div className="grid gap-1">
+                      <Label>น้ำหนักรวม (auto)</Label>
+                      <Input value={totalWeight.toFixed(2)} readOnly />
+                    </div>
+                    <div className="grid gap-1">
+                      <Label>ราคา</Label>
+                      <Input type="number" value={item.price} onChange={(e) => setOrangeItems((s) => s.map((x) => x.id === item.id ? { ...x, price: e.target.value === "" ? "" : Number(e.target.value) } : x))} placeholder="ราคา" />
+                    </div>
+                    <div className="grid gap-1">
+                      <Label>จำนวนเงิน (auto)</Label>
+                      <Input value={amount.toFixed(2)} readOnly />
+                    </div>
+                    <div className="flex justify-end md:col-span-8">
+                      <Button variant="destructive" size="sm" onClick={() => setOrangeItems((s) => s.filter((x) => x.id !== item.id))} disabled={orangeItems.length === 1}><Trash2 /> ลบ</Button>
+                    </div>
+                  </div>
+                );
+              })}
+              <div className="flex items-center justify-between">
+                <Button variant="gradient" onClick={() => setOrangeItems([...orangeItems, { id: crypto.randomUUID(), name: "", qty: "", weight: "", fraction: "", price: "" }])}><Plus /> เพิ่มรายการ</Button>
+                <div className="text-xl font-bold">ยอดรวม: ฿ {orangeItems.reduce((sum, item) => {
+                  const qty = Number(item.qty) || 0;
+                  const weight = Number(item.weight) || 0;
+                  const fraction = Number(item.fraction) || 0;
+                  const price = Number(item.price) || 0;
+                  const totalWeight = qty * weight + fraction;
+                  const amount = totalWeight * price;
+                  return sum + amount;
+                }, 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
               </div>
-              <Button variant="outline" size="sm" onClick={() => {
-                setOrangeItems([...orangeItems, { id: crypto.randomUUID(), number: "", qty: "", fraction: "", weight: "", price: "" }]);
-              }}>
-                <Plus className="mr-2 h-4 w-4" />
-                เพิ่มแถว
-              </Button>
             </CardContent>
           </Card>
 
@@ -816,9 +799,12 @@ export default function CreateBill() {
                   <Input type="number" value={
                     orangeItems.reduce((sum, item) => {
                       const qty = Number(item.qty) || 0;
-                      const price = Number(item.price) || 0;
+                      const weight = Number(item.weight) || 0;
                       const fraction = Number(item.fraction) || 0;
-                      return sum + (qty * price) + fraction;
+                      const price = Number(item.price) || 0;
+                      const totalWeight = qty * weight + fraction;
+                      const amount = totalWeight * price;
+                      return sum + amount;
                     }, 0).toFixed(2)
                   } readOnly placeholder="96800" className="bg-muted" />
                 </div>
@@ -827,11 +813,16 @@ export default function CreateBill() {
                   <Input type="number" value={
                     (() => {
                       const processingPrice = Number(orangeProcessingPriceKg) || 0;
-                      const totalWeight = orangeItems.reduce((sum, item) => {
+                      const totalAmount = orangeItems.reduce((sum, item) => {
+                        const qty = Number(item.qty) || 0;
                         const weight = Number(item.weight) || 0;
-                        return sum + weight;
+                        const fraction = Number(item.fraction) || 0;
+                        const price = Number(item.price) || 0;
+                        const totalWeight = qty * weight + fraction;
+                        const amount = totalWeight * price;
+                        return sum + amount;
                       }, 0);
-                      return (processingPrice * totalWeight).toFixed(2);
+                      return (processingPrice * totalAmount).toFixed(2);
                     })()
                   } readOnly placeholder="4840" className="bg-muted" />
                 </div>
