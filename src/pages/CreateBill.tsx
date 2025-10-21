@@ -694,11 +694,14 @@ export default function CreateBill() {
                   <Input type="number" value={orangeBasketQty} onChange={(e) => setOrangeBasketQty(e.target.value === "" ? "" : Number(e.target.value))} placeholder="275" />
                 </div>
                 <div className="grid gap-2">
-                  <Label>ยอดสุทธิ (กิโลกรัม) (auto)</Label>
+                  <Label>น้ำหนักรวม (auto)</Label>
                   <Input type="number" value={
                     orangeItems.reduce((sum, item) => {
+                      const qty = Number(item.qty) || 0;
                       const weight = Number(item.weight) || 0;
-                      return sum + weight;
+                      const fraction = Number(item.fraction) || 0;
+                      const totalWeight = qty * weight + fraction;
+                      return sum + totalWeight;
                     }, 0).toFixed(2)
                   } readOnly placeholder="6050" />
                 </div>
@@ -795,7 +798,7 @@ export default function CreateBill() {
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="grid gap-2">
-                  <Label>จำนวนรวม (auto)</Label>
+                  <Label>ยอดรวม (auto)</Label>
                   <Input type="number" value={
                     orangeItems.reduce((sum, item) => {
                       const qty = Number(item.qty) || 0;
@@ -813,16 +816,14 @@ export default function CreateBill() {
                   <Input type="number" value={
                     (() => {
                       const processingPrice = Number(orangeProcessingPriceKg) || 0;
-                      const totalAmount = orangeItems.reduce((sum, item) => {
+                      const totalWeight = orangeItems.reduce((sum, item) => {
                         const qty = Number(item.qty) || 0;
                         const weight = Number(item.weight) || 0;
                         const fraction = Number(item.fraction) || 0;
-                        const price = Number(item.price) || 0;
-                        const totalWeight = qty * weight + fraction;
-                        const amount = totalWeight * price;
-                        return sum + amount;
+                        const totalWeightItem = qty * weight + fraction;
+                        return sum + totalWeightItem;
                       }, 0);
-                      return (processingPrice * totalAmount).toFixed(2);
+                      return (totalWeight * processingPrice).toFixed(2);
                     })()
                   } readOnly placeholder="4840" className="bg-muted" />
                 </div>
@@ -840,8 +841,31 @@ export default function CreateBill() {
               </div>
 
               <div className="grid gap-2">
-                <Label className="text-lg font-bold">รวมเงิน (บาท)</Label>
-                <Input type="number" value={orangeGrandTotal} onChange={(e) => setOrangeGrandTotal(e.target.value === "" ? "" : Number(e.target.value))} placeholder="102135" className="text-lg font-bold" />
+                <Label className="text-lg font-bold">จำนวนเงินรวมทั้งหมด (auto)</Label>
+                <Input type="number" value={
+                  (() => {
+                    const totalAmount = orangeItems.reduce((sum, item) => {
+                      const qty = Number(item.qty) || 0;
+                      const weight = Number(item.weight) || 0;
+                      const fraction = Number(item.fraction) || 0;
+                      const price = Number(item.price) || 0;
+                      const totalWeight = qty * weight + fraction;
+                      const amount = totalWeight * price;
+                      return sum + amount;
+                    }, 0);
+                    const processingPrice = Number(orangeProcessingPriceKg) || 0;
+                    const totalWeight = orangeItems.reduce((sum, item) => {
+                      const qty = Number(item.qty) || 0;
+                      const weight = Number(item.weight) || 0;
+                      const fraction = Number(item.fraction) || 0;
+                      const totalWeightItem = qty * weight + fraction;
+                      return sum + totalWeightItem;
+                    }, 0);
+                    const processingCost = totalWeight * processingPrice;
+                    const paperCost = Number(orangePaperCost) || 0;
+                    return (totalAmount + processingCost + paperCost).toFixed(2);
+                  })()
+                } readOnly placeholder="102135" className="text-lg font-bold bg-muted" />
               </div>
             </CardContent>
           </Card>
