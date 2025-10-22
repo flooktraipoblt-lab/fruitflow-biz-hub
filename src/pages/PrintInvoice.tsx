@@ -277,6 +277,19 @@ export default function PrintInvoice() {
     }, 0);
   }, [items]);
 
+  const totalWeight = useMemo(() => {
+    return items.reduce((sum, it) => {
+      const tw = Number(it.qty) * Number(it.weight) + Number(it.fraction);
+      return sum + tw;
+    }, 0);
+  }, [items]);
+
+  const isOrangeBill = invoice?.type === "sell";
+  const processingCost = isOrangeBill && bill ? (totalWeight * (Number(bill.processing_price_kg) || 0)) : 0;
+  const paperCost = isOrangeBill && bill ? (Number(bill.paper_cost) || 0) : 0;
+  const basketQuantity = isOrangeBill && bill ? (Number(bill.basket_quantity) || 0) : 0;
+  const finalTotal = isOrangeBill ? (overallTotal + processingCost + paperCost) : overallTotal;
+
   const invDate = invoice?.date || invoice?.bill_date || invoice?.created_at;
   const dateStr = invDate ? new Date(invDate).toLocaleDateString("th-TH") : "";
   const invType = invoice?.type === "buy" ? "ซื้อ" : invoice?.type === "sell" ? "ขาย" : (invoice?.type || "");
@@ -319,14 +332,14 @@ export default function PrintInvoice() {
       </div>
 
       <style>{`
-        @page { size: A5 landscape; margin: 0mm; }
+        @page { size: A5 ${isOrangeBill ? 'portrait' : 'landscape'}; margin: 0mm; }
         :root { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         html, body { background: #f4f4f4; margin: 0; padding: 0; }
         .page {
-          width: 210mm; height: 148mm; background: white; color: #111;
+          width: ${isOrangeBill ? '148mm' : '210mm'}; height: ${isOrangeBill ? '210mm' : '148mm'}; background: white; color: #111;
           margin: 0; box-sizing: border-box; padding: 4mm; position: relative;
           border: 1px solid #222; display: flex; flex-direction: column;
-          min-height: 148mm; max-width: 210mm;
+          min-height: ${isOrangeBill ? '210mm' : '148mm'}; max-width: ${isOrangeBill ? '148mm' : '210mm'};
         }
         .header { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; margin-bottom: 6mm; }
         .hdr-left, .hdr-right { font-size: 12pt; }
@@ -455,6 +468,32 @@ export default function PrintInvoice() {
             </tbody>
           </table>
 
+          {isOrangeBill && pageIndex === pages.length - 1 && (
+            <div style={{ marginTop: '4mm', padding: '3mm', border: '1px solid #333', fontSize: '11pt' }}>
+              <div style={{ fontWeight: '700', marginBottom: '2mm' }}>ค่าใช้จ่ายและสรุปยอด</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '2mm' }}>
+                <div>น้ำหนักรวม:</div>
+                <div style={{ fontWeight: '700' }}>{nf.format(totalWeight)} กก.</div>
+                
+                <div>ค่าร่อน ล้าง แว็กซ์ ({nf.format(Number(bill?.processing_price_kg) || 0)} บาท/กก.):</div>
+                <div style={{ fontWeight: '700' }}>{nf.format(processingCost)} บาท</div>
+                
+                <div>ค่ากระดาษ:</div>
+                <div style={{ fontWeight: '700' }}>{nf.format(paperCost)} บาท</div>
+                
+                <div>จำนวนส้มทั้งหมด:</div>
+                <div style={{ fontWeight: '700' }}>{basketQuantity} ตะกร้า</div>
+                
+                <div style={{ borderTop: '2px solid #333', paddingTop: '2mm', marginTop: '2mm', fontWeight: '700', fontSize: '12pt' }}>
+                  จำนวนเงินรวมทั้งหมด:
+                </div>
+                <div style={{ borderTop: '2px solid #333', paddingTop: '2mm', marginTop: '2mm', fontWeight: '700', fontSize: '12pt' }}>
+                  {nf.format(finalTotal)} บาท
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="foot">
             {pageIndex === pages.length - 1 ? (
               <>
@@ -462,7 +501,9 @@ export default function PrintInvoice() {
                   <div className="line">ผู้รับเงิน</div>
                   <div className="line">ผู้จ่ายเงิน</div>
                 </div>
-                <div className="total-box">ราคารวม: {nf.format(overallTotal)} บาท</div>
+                <div className="total-box">
+                  {isOrangeBill ? `ยอดสุทธิ: ${nf.format(finalTotal)} บาท` : `ราคารวม: ${nf.format(overallTotal)} บาท`}
+                </div>
               </>
             ) : (
               <div className="cont">มีต่อหน้าที่ {pageIndex + 2}</div>

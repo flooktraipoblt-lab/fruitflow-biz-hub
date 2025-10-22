@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      ads: {
+        Row: {
+          advertiser: string
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          link_url: string | null
+          priority: number | null
+          title: string
+        }
+        Insert: {
+          advertiser: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          link_url?: string | null
+          priority?: number | null
+          title: string
+        }
+        Update: {
+          advertiser?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          link_url?: string | null
+          priority?: number | null
+          title?: string
+        }
+        Relationships: []
+      }
       baskets: {
         Row: {
           basket_date: string
@@ -217,39 +253,162 @@ export type Database = {
       }
       bills: {
         Row: {
+          basket_quantity: number | null
           bill_date: string
           bill_no: string
           created_at: string
           customer: string
           id: string
           owner_id: string
+          paper_cost: number | null
+          processing_price_kg: number | null
           status: string
           total: number
           type: string
           updated_at: string
         }
         Insert: {
+          basket_quantity?: number | null
           bill_date?: string
           bill_no?: string
           created_at?: string
           customer: string
           id?: string
           owner_id: string
+          paper_cost?: number | null
+          processing_price_kg?: number | null
           status?: string
           total?: number
           type: string
           updated_at?: string
         }
         Update: {
+          basket_quantity?: number | null
           bill_date?: string
           bill_no?: string
           created_at?: string
           customer?: string
           id?: string
           owner_id?: string
+          paper_cost?: number | null
+          processing_price_kg?: number | null
           status?: string
           total?: number
           type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      comment_likes: {
+        Row: {
+          comment_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          comment_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          comment_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      comments: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          image_urls: string[] | null
+          like_count: number
+          parent_id: string | null
+          post_id: string
+          updated_at: string
+          user_id: string
+          week_number: number
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          image_urls?: string[] | null
+          like_count?: number
+          parent_id?: string | null
+          post_id: string
+          updated_at?: string
+          user_id: string
+          week_number?: number
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          image_urls?: string[] | null
+          like_count?: number
+          parent_id?: string | null
+          post_id?: string
+          updated_at?: string
+          user_id?: string
+          week_number?: number
+        }
+        Relationships: []
+      }
+      competitions: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string
+          description: string | null
+          end_date: string
+          id: string
+          image_url: string | null
+          is_active: boolean
+          participant_count: number | null
+          prize_amount: number | null
+          prize_description: string | null
+          rules: string | null
+          start_date: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          end_date: string
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          participant_count?: number | null
+          prize_amount?: number | null
+          prize_description?: string | null
+          rules?: string | null
+          start_date: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          end_date?: string
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          participant_count?: number | null
+          prize_amount?: number | null
+          prize_description?: string | null
+          rules?: string | null
+          start_date?: string
+          title?: string
           updated_at?: string
         }
         Relationships: []
@@ -294,6 +453,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      diary_weeks: {
+        Row: {
+          content: string | null
+          created_at: string
+          humidity: number | null
+          id: string
+          image_urls: string[] | null
+          lighting_hours: number | null
+          owner_id: string
+          ph: number | null
+          post_id: string
+          temperature: number | null
+          updated_at: string
+          week_number: number
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          humidity?: number | null
+          id?: string
+          image_urls?: string[] | null
+          lighting_hours?: number | null
+          owner_id: string
+          ph?: number | null
+          post_id: string
+          temperature?: number | null
+          updated_at?: string
+          week_number: number
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          humidity?: number | null
+          id?: string
+          image_urls?: string[] | null
+          lighting_hours?: number | null
+          owner_id?: string
+          ph?: number | null
+          post_id?: string
+          temperature?: number | null
+          updated_at?: string
+          week_number?: number
+        }
+        Relationships: []
       }
       employee_absences: {
         Row: {
@@ -502,30 +706,194 @@ export type Database = {
         }
         Relationships: []
       }
+      permission_settings: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          setting_name: string
+          setting_value: boolean
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          setting_name: string
+          setting_value?: boolean
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          setting_name?: string
+          setting_value?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      post_likes: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_likes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      posts: {
+        Row: {
+          breeder: string | null
+          content: string | null
+          created_at: string
+          description: string | null
+          genetics: string | null
+          growing_method: string | null
+          humidity: number | null
+          id: string
+          image_urls: string[] | null
+          is_public: boolean | null
+          latest_week_id: string | null
+          lighting_hours: number | null
+          like_count: number | null
+          ph: number | null
+          plant_name: string | null
+          post_type: string | null
+          strain_name: string | null
+          strain_type: string | null
+          tags: string[] | null
+          temperature: number | null
+          title: string
+          updated_at: string
+          user_id: string
+          view_count: number | null
+          vpd: number | null
+          week_number: number | null
+          week_stage: string | null
+        }
+        Insert: {
+          breeder?: string | null
+          content?: string | null
+          created_at?: string
+          description?: string | null
+          genetics?: string | null
+          growing_method?: string | null
+          humidity?: number | null
+          id?: string
+          image_urls?: string[] | null
+          is_public?: boolean | null
+          latest_week_id?: string | null
+          lighting_hours?: number | null
+          like_count?: number | null
+          ph?: number | null
+          plant_name?: string | null
+          post_type?: string | null
+          strain_name?: string | null
+          strain_type?: string | null
+          tags?: string[] | null
+          temperature?: number | null
+          title: string
+          updated_at?: string
+          user_id: string
+          view_count?: number | null
+          vpd?: number | null
+          week_number?: number | null
+          week_stage?: string | null
+        }
+        Update: {
+          breeder?: string | null
+          content?: string | null
+          created_at?: string
+          description?: string | null
+          genetics?: string | null
+          growing_method?: string | null
+          humidity?: number | null
+          id?: string
+          image_urls?: string[] | null
+          is_public?: boolean | null
+          latest_week_id?: string | null
+          lighting_hours?: number | null
+          like_count?: number | null
+          ph?: number | null
+          plant_name?: string | null
+          post_type?: string | null
+          strain_name?: string | null
+          strain_type?: string | null
+          tags?: string[] | null
+          temperature?: number | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+          view_count?: number | null
+          vpd?: number | null
+          week_number?: number | null
+          week_stage?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           approved: boolean
+          avatar_url: string | null
+          birth_date: string | null
           created_at: string
           display_name: string | null
           email: string
           id: string
+          nickname: string | null
+          terms_accepted: boolean | null
+          terms_accepted_at: string | null
           updated_at: string
+          username: string | null
         }
         Insert: {
           approved?: boolean
+          avatar_url?: string | null
+          birth_date?: string | null
           created_at?: string
           display_name?: string | null
           email: string
           id: string
+          nickname?: string | null
+          terms_accepted?: boolean | null
+          terms_accepted_at?: string | null
           updated_at?: string
+          username?: string | null
         }
         Update: {
           approved?: boolean
+          avatar_url?: string | null
+          birth_date?: string | null
           created_at?: string
           display_name?: string | null
           email?: string
           id?: string
+          nickname?: string | null
+          terms_accepted?: boolean | null
+          terms_accepted_at?: string | null
           updated_at?: string
+          username?: string | null
         }
         Relationships: []
       }
@@ -552,6 +920,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      approve_user_and_confirm_email: {
+        Args: { user_id_param: string }
+        Returns: Json
+      }
+      get_latest_week_data: {
+        Args: { post_uuid: string }
+        Returns: {
+          humidity: number
+          lighting_hours: number
+          ph: number
+          temperature: number
+          week_number: number
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -562,6 +944,18 @@ export type Database = {
       is_approved: {
         Args: { _user_id: string }
         Returns: boolean
+      }
+      signin_with_username_or_email: {
+        Args: { identifier: string; user_password: string }
+        Returns: Json
+      }
+      simple_signup: {
+        Args: {
+          user_display_name?: string
+          user_password: string
+          user_username: string
+        }
+        Returns: Json
       }
     }
     Enums: {

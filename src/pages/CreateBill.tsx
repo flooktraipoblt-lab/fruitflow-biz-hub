@@ -940,6 +940,9 @@ export default function CreateBill() {
                     type: "sell",
                     total: grandTotal,
                     status: "due",
+                    processing_price_kg: processingPrice,
+                    paper_cost: paperCost,
+                    basket_quantity: Number(orangeBasketQty) || 0,
                   })
                   .select()
                   .single();
