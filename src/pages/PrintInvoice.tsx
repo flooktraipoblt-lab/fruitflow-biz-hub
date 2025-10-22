@@ -225,7 +225,8 @@ export default function PrintInvoice() {
     }
   }, [loading]);
 
-  const DISPLAY_ROWS = 6;
+  const isOrangeBill = invoice?.type === "sell" && (bill?.processing_price_kg || bill?.paper_cost || bill?.basket_quantity);
+  const DISPLAY_ROWS = isOrangeBill ? 10 : 6;
   const isCompact = items.length <= DISPLAY_ROWS;
 
   const pages = useMemo(() => {
@@ -284,7 +285,6 @@ export default function PrintInvoice() {
     }, 0);
   }, [items]);
 
-  const isOrangeBill = invoice?.type === "sell";
   const processingCost = isOrangeBill && bill ? (totalWeight * (Number(bill.processing_price_kg) || 0)) : 0;
   const paperCost = isOrangeBill && bill ? (Number(bill.paper_cost) || 0) : 0;
   const basketQuantity = isOrangeBill && bill ? (Number(bill.basket_quantity) || 0) : 0;
@@ -337,7 +337,7 @@ export default function PrintInvoice() {
         html, body { background: #f4f4f4; margin: 0; padding: 0; }
         .page {
           width: ${isOrangeBill ? '148mm' : '210mm'}; height: ${isOrangeBill ? '210mm' : '148mm'}; background: white; color: #111;
-          margin: 0; box-sizing: border-box; padding: 4mm; position: relative;
+          margin: 0; box-sizing: border-box; padding: ${isOrangeBill ? '3mm' : '4mm'}; position: relative;
           border: 1px solid #222; display: flex; flex-direction: column;
           min-height: ${isOrangeBill ? '210mm' : '148mm'}; max-width: ${isOrangeBill ? '148mm' : '210mm'};
         }
@@ -347,49 +347,53 @@ export default function PrintInvoice() {
         .title-row { display:flex; justify-content: space-between; align-items: center; margin-bottom: 4mm; }
         .title { font-size: 16pt; font-weight: 700; }
         .meta { font-size: 11pt; }
-        table { width: 100%; border-collapse: collapse; font-size: 11pt; }
-        th, td { border: 1px solid #333; padding: 4px 6px; text-align: right; }
+        table { width: 100%; border-collapse: collapse; font-size: ${isOrangeBill ? '9pt' : '11pt'}; }
+        th, td { border: 1px solid #333; padding: ${isOrangeBill ? '2px 4px' : '4px 6px'}; text-align: right; }
         th:first-child, td:first-child { text-align: left; }
-        .foot { display: grid; grid-template-columns: 1fr 1fr; margin-top: 4mm; align-items: end; }
-        .sign { display:flex; justify-content: space-between; padding: 0 10mm; }
+        .foot { display: grid; grid-template-columns: 1fr 1fr; margin-top: ${isOrangeBill ? '2mm' : '4mm'}; align-items: end; }
+        .sign { display:flex; justify-content: space-between; padding: 0 ${isOrangeBill ? '6mm' : '10mm'}; }
         .sign .line { width: 40%; border-top: 1px solid #000; text-align: center; padding-top: 2mm; }
-        .total-box { justify-self: end; border: 1px solid #000; padding: 5mm 8mm; font-size: 14pt; font-weight: 700; }
+        .total-box { justify-self: end; border: 1px solid #000; padding: ${isOrangeBill ? '3mm 5mm' : '5mm 8mm'}; font-size: ${isOrangeBill ? '11pt' : '14pt'}; font-weight: 700; }
         .cont { grid-column: 1 / -1; text-align: center; font-size: 12pt; font-weight: 700; padding: 3mm 0; }
         .muted { opacity: .9; }
-        .brand-row { display: flex; align-items: center; gap: 6mm; margin-bottom: 4mm; }
+        .brand-row { display: flex; align-items: center; gap: ${isOrangeBill ? '3mm' : '6mm'}; margin-bottom: ${isOrangeBill ? '2mm' : '4mm'}; }
         .brand-logo {
-          font-weight: 900; font-size: 18pt; letter-spacing: 0.5px;
+          font-weight: 900; font-size: ${isOrangeBill ? '14pt' : '18pt'}; letter-spacing: 0.5px;
           background: linear-gradient(90deg, hsl(var(--brand-1)), hsl(var(--brand-2)), hsl(var(--brand-3)));
           -webkit-background-clip: text; background-clip: text; color: transparent;
         }
-        .company-name { font-size: 14pt; font-weight: 800; color: #111; }
+        .company-name { font-size: ${isOrangeBill ? '10pt' : '14pt'}; font-weight: 800; color: #111; }
         .brand-info { display: flex; flex-direction: column; gap: 1mm; }
-        .brand-sub { font-size: 9pt; color: #111; line-height: 1.3; }
-        .info-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3mm; padding: 3mm; border: 1px solid #000; margin: 3mm 0 4mm; }
+        .brand-sub { font-size: ${isOrangeBill ? '7pt' : '9pt'}; color: #111; line-height: 1.3; }
+        .info-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: ${isOrangeBill ? '2mm' : '3mm'}; padding: ${isOrangeBill ? '2mm' : '3mm'}; border: 1px solid #000; margin: ${isOrangeBill ? '2mm 0 2mm' : '3mm 0 4mm'}; }
         .info-item { text-align: left; }
-        .info-label { font-size: 9pt; opacity: .9; }
-        .info-value { font-size: 12pt; font-weight: 700; }
+        .info-label { font-size: ${isOrangeBill ? '7pt' : '9pt'}; opacity: .9; }
+        .info-value { font-size: ${isOrangeBill ? '9pt' : '12pt'}; font-weight: 700; }
+        .expense-section { margin-top: ${isOrangeBill ? '2mm' : '4mm'}; padding: ${isOrangeBill ? '2mm' : '3mm'}; border: 1px solid #333; font-size: ${isOrangeBill ? '9pt' : '11pt'}; }
+        .expense-title { font-weight: 700; margin-bottom: ${isOrangeBill ? '1mm' : '2mm'}; }
+        .expense-grid { display: grid; grid-template-columns: 1fr auto; gap: ${isOrangeBill ? '1mm' : '2mm'}; }
+        .expense-total { border-top: 2px solid #333; padding-top: ${isOrangeBill ? '1mm' : '2mm'}; margin-top: ${isOrangeBill ? '1mm' : '2mm'}; font-weight: 700; font-size: ${isOrangeBill ? '10pt' : '12pt'}; }
 
-        /* Compact mode for <= 6 items to ensure everything fits on only page */
-        .page.compact { padding: 8mm; }
+        /* Compact mode for <= display rows items to ensure everything fits on one page */
+        .page.compact { padding: ${isOrangeBill ? '4mm' : '8mm'}; }
         .page.compact .brand-row { gap: 3mm; margin-bottom: 2mm; }
-        .page.compact .brand-logo { font-size: 25pt; }
-        .page.compact .company-name { font-size: 12pt; }
-        .page.compact .brand-sub { font-size: 8pt; }
+        .page.compact .brand-logo { font-size: ${isOrangeBill ? '16pt' : '25pt'}; }
+        .page.compact .company-name { font-size: ${isOrangeBill ? '10pt' : '12pt'}; }
+        .page.compact .brand-sub { font-size: ${isOrangeBill ? '7pt' : '8pt'}; }
         .page.compact .info-grid { gap: 2mm; padding: 2mm; margin: 2mm 0 3mm; }
-        .page.compact .info-label { font-size: 8pt; }
-        .page.compact .info-value { font-size: 11pt; }
-        .page.compact table { font-size: 10pt; }
+        .page.compact .info-label { font-size: ${isOrangeBill ? '7pt' : '8pt'}; }
+        .page.compact .info-value { font-size: ${isOrangeBill ? '9pt' : '11pt'}; }
+        .page.compact table { font-size: ${isOrangeBill ? '9pt' : '10pt'}; }
         .page.compact th, .page.compact td { padding: 2px 4px; }
         .page.compact .foot { margin-top: 2mm; }
         .page.compact .sign { padding: 0 6mm; }
         .page.compact .sign .line { width: 38%; padding-top: 1.5mm; }
-        .page.compact .total-box { padding: 4mm 6mm; font-size: 12pt; }
+        .page.compact .total-box { padding: ${isOrangeBill ? '3mm 4mm' : '4mm 6mm'}; font-size: ${isOrangeBill ? '10pt' : '12pt'}; }
 
         @media print {
           html, body { background: white; }
-          .page { box-shadow: none; border: none; padding: 8mm; }
-          .page.compact { padding: 8mm; }
+          .page { box-shadow: none; border: none; padding: ${isOrangeBill ? '4mm' : '8mm'}; }
+          .page.compact { padding: ${isOrangeBill ? '4mm' : '8mm'}; }
           .cont { padding: 0; }
         }
       `}</style>
@@ -406,22 +410,45 @@ export default function PrintInvoice() {
           </div>
 
           <div className="info-grid">
-            <div className="info-item">
-              <div className="info-label">วันที่</div>
-              <div className="info-value">{dateStr || '-'}</div>
-            </div>
-            <div className="info-item">
-              <div className="info-label">ประเภทบิล</div>
-              <div className="info-value">{invType || '-'}</div>
-            </div>
-            <div className="info-item">
-              <div className="info-label">ชื่อลูกค้า</div>
-              <div className="info-value">{cust || '-'}</div>
-            </div>
-            <div className="info-item">
-              <div className="info-label">เลขที่บิล</div>
-              <div className="info-value">{receiptNo || '-'}</div>
-            </div>
+            {isOrangeBill ? (
+              <>
+                <div className="info-item">
+                  <div className="info-label">วันที่</div>
+                  <div className="info-value">{dateStr || '-'}</div>
+                </div>
+                <div className="info-item">
+                  <div className="info-label">ประเภทบิล</div>
+                  <div className="info-value">{invType || '-'}</div>
+                </div>
+                <div className="info-item" style={{ gridColumn: 'span 2' }}>
+                  <div className="info-label">ชื่อลูกค้า</div>
+                  <div className="info-value">{cust || '-'}</div>
+                </div>
+                <div className="info-item" style={{ gridColumn: 'span 4' }}>
+                  <div className="info-label">เลขที่บิล</div>
+                  <div className="info-value">{receiptNo || '-'}</div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="info-item">
+                  <div className="info-label">วันที่</div>
+                  <div className="info-value">{dateStr || '-'}</div>
+                </div>
+                <div className="info-item">
+                  <div className="info-label">ประเภทบิล</div>
+                  <div className="info-value">{invType || '-'}</div>
+                </div>
+                <div className="info-item">
+                  <div className="info-label">ชื่อลูกค้า</div>
+                  <div className="info-value">{cust || '-'}</div>
+                </div>
+                <div className="info-item">
+                  <div className="info-label">เลขที่บิล</div>
+                  <div className="info-value">{receiptNo || '-'}</div>
+                </div>
+              </>
+            )}
           </div>
 
           <table>
@@ -469,9 +496,9 @@ export default function PrintInvoice() {
           </table>
 
           {isOrangeBill && pageIndex === pages.length - 1 && (
-            <div style={{ marginTop: '4mm', padding: '3mm', border: '1px solid #333', fontSize: '11pt' }}>
-              <div style={{ fontWeight: '700', marginBottom: '2mm' }}>ค่าใช้จ่ายและสรุปยอด</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '2mm' }}>
+            <div className="expense-section">
+              <div className="expense-title">ค่าใช้จ่ายและสรุปยอด</div>
+              <div className="expense-grid">
                 <div>น้ำหนักรวม:</div>
                 <div style={{ fontWeight: '700' }}>{nf.format(totalWeight)} กก.</div>
                 
@@ -484,10 +511,10 @@ export default function PrintInvoice() {
                 <div>จำนวนส้มทั้งหมด:</div>
                 <div style={{ fontWeight: '700' }}>{basketQuantity} ตะกร้า</div>
                 
-                <div style={{ borderTop: '2px solid #333', paddingTop: '2mm', marginTop: '2mm', fontWeight: '700', fontSize: '12pt' }}>
+                <div className="expense-total">
                   จำนวนเงินรวมทั้งหมด:
                 </div>
-                <div style={{ borderTop: '2px solid #333', paddingTop: '2mm', marginTop: '2mm', fontWeight: '700', fontSize: '12pt' }}>
+                <div className="expense-total">
                   {nf.format(finalTotal)} บาท
                 </div>
               </div>

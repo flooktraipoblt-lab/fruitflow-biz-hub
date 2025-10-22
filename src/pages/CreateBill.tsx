@@ -65,7 +65,7 @@ export default function CreateBill() {
       try {
         const { data: bill, error: billErr } = await (supabase as any)
           .from("bills")
-          .select("id, bill_date, customer, type, total, status")
+          .select("id, bill_date, customer, type, total, status, processing_price_kg, paper_cost, basket_quantity")
           .eq("id", billId)
           .maybeSingle();
         if (billErr) throw billErr;
@@ -74,7 +74,15 @@ export default function CreateBill() {
           setCustomer(bill.customer ?? "");
           const currentType = (bill.type as "buy" | "sell") ?? "sell";
           setType(currentType);
-          setOriginalType(currentType); // เก็บค่าเดิมไว้
+          setOriginalType(currentType);
+          
+          // Load orange bill data if exists
+          if (bill.processing_price_kg !== null || bill.paper_cost !== null || bill.basket_quantity !== null) {
+            setActiveTab("orange");
+            setOrangeProcessingPriceKg(bill.processing_price_kg ?? "");
+            setOrangePaperCost(bill.paper_cost ?? "");
+            setOrangeBasketQty(bill.basket_quantity ?? "");
+          }
         }
         // Load bill items
         const { data: itemsData, error: itemsErr } = await (supabase as any)
@@ -84,14 +92,21 @@ export default function CreateBill() {
           .order("created_at", { ascending: true });
         if (itemsErr) throw itemsErr;
         if (itemsData && itemsData.length > 0) {
-          setItems(itemsData.map((it: any) => ({
+          const loadedItems = itemsData.map((it: any) => ({
             id: it.id,
             name: it.name ?? "",
             qty: it.qty ?? "",
             weight: it.weight ?? "",
             fraction: it.fraction ?? "",
             price: it.price ?? "",
-          })));
+          }));
+          
+          // Check if this is an orange bill and load to orangeItems
+          if (bill && (bill.processing_price_kg !== null || bill.paper_cost !== null || bill.basket_quantity !== null)) {
+            setOrangeItems(loadedItems);
+          } else {
+            setItems(loadedItems);
+          }
         } else {
           setItems([{ id: crypto.randomUUID(), name: "", qty: "", weight: "", fraction: "", price: "" }]);
         }
@@ -657,7 +672,7 @@ export default function CreateBill() {
               <CardDescription>บิลส่วน (ซื้อ / ขายส้ม)</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-3">
+              <div className="grid gap-4 md:grid-cols-2">
                 <div className="grid gap-2">
                   <Label>วันที่</Label>
                   <Popover>
@@ -681,29 +696,6 @@ export default function CreateBill() {
                     placeholder="ค้นหาหรือกรอกชื่อลูกค้า"
                     emptyText="ไม่พบลูกค้า"
                   />
-                </div>
-                <div className="grid gap-2">
-                  <Label>เบอร์โทร</Label>
-                  <Input type="text" value={orangePhone} onChange={(e) => setOrangePhone(e.target.value)} placeholder="081-xxx-xxxx" />
-                </div>
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="grid gap-2">
-                  <Label>จำนวน (ตะกร้า)</Label>
-                  <Input type="number" value={orangeBasketQty} onChange={(e) => setOrangeBasketQty(e.target.value === "" ? "" : Number(e.target.value))} placeholder="275" />
-                </div>
-                <div className="grid gap-2">
-                  <Label>น้ำหนักรวม (auto)</Label>
-                  <Input type="number" value={
-                    orangeItems.reduce((sum, item) => {
-                      const qty = Number(item.qty) || 0;
-                      const weight = Number(item.weight) || 0;
-                      const fraction = Number(item.fraction) || 0;
-                      const totalWeight = qty * weight + fraction;
-                      return sum + totalWeight;
-                    }, 0).toFixed(2)
-                  } readOnly placeholder="6050" />
                 </div>
               </div>
             </CardContent>
@@ -787,8 +779,16 @@ export default function CreateBill() {
             <CardContent className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="grid gap-2">
-                  <Label>น้ำหนักต่อตะกร้า</Label>
-                  <Input type="number" value={orangeWeightPerBasket} onChange={(e) => setOrangeWeightPerBasket(e.target.value === "" ? "" : Number(e.target.value))} placeholder="22" />
+                  <Label>น้ำหนักรวม (auto)</Label>
+                  <Input type="number" value={
+                    orangeItems.reduce((sum, item) => {
+                      const qty = Number(item.qty) || 0;
+                      const weight = Number(item.weight) || 0;
+                      const fraction = Number(item.fraction) || 0;
+                      const totalWeight = qty * weight + fraction;
+                      return sum + totalWeight;
+                    }, 0).toFixed(2)
+                  } readOnly placeholder="6050" className="bg-muted" />
                 </div>
                 <div className="grid gap-2">
                   <Label>ค่าร่อน ล้าง แว็กซ์ (ราคา:กิโล)</Label>
@@ -836,7 +836,7 @@ export default function CreateBill() {
                 </div>
                 <div className="grid gap-2">
                   <Label>จำนวนส้มทั้งหมด (ตะกร้า)</Label>
-                  <Input type="number" value={orangeBasketQty} readOnly placeholder="275" className="bg-muted" />
+                  <Input type="number" value={orangeBasketQty} onChange={(e) => setOrangeBasketQty(e.target.value === "" ? "" : Number(e.target.value))} placeholder="275" />
                 </div>
               </div>
 
