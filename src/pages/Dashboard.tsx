@@ -143,6 +143,54 @@ export default function Dashboard() {
     return rows;
   }, [bills, rangeDates]);
 
+  // ยอดขายตามลูกค้า (Top 5)
+  const salesByCustomer = useMemo(() => {
+    const map = new Map<string, number>();
+    (bills as any[]).filter((b: any) => b.type === "sell").forEach((b: any) => {
+      const customer = b.customer || "ไม่ระบุ";
+      map.set(customer, (map.get(customer) || 0) + Number(b.total || 0));
+    });
+    const arr = Array.from(map.entries()).map(([name, value]) => ({ name, value }));
+    arr.sort((a, b) => b.value - a.value);
+    return arr.slice(0, 5);
+  }, [bills]);
+
+  // รายจ่ายตามประเภท
+  const expensesByType = useMemo(() => {
+    const map = new Map<string, number>();
+    expenses.forEach((e: any) => {
+      const type = e.type || "อื่นๆ";
+      map.set(type, (map.get(type) || 0) + Number(e.amount || 0));
+    });
+    return Array.from(map.entries()).map(([name, value]) => ({ name, value }));
+  }, [expenses]);
+
+  // สถิติตะกร้า
+  const { data: baskets = [] } = useQuery({
+    queryKey: ["dashboard-baskets", rangeDates],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("baskets")
+        .select("id, basket_date, flow, quantity")
+        .gte("basket_date", rangeDates.from.toISOString())
+        .lte("basket_date", rangeDates.to.toISOString());
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const basketStats = useMemo(() => {
+    let inCount = 0, outCount = 0;
+    (baskets as any[]).forEach((b: any) => {
+      const qty = Number(b.quantity || 0);
+      if (b.flow === "in") inCount += qty;
+      if (b.flow === "out") outCount += qty;
+    });
+    return { in: inCount, out: outCount, net: inCount - outCount };
+  }, [baskets]);
+
+  const CHART_COLORS = ["hsl(231, 70%, 60%)", "hsl(284, 65%, 52%)", "hsl(334, 75%, 50%)", "hsl(142, 72%, 35%)", "hsl(0, 72%, 50%)", "hsl(45, 93%, 47%)"];
+
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -167,6 +215,187 @@ export default function Dashboard() {
         <MetricCard title="กำไร" value={`฿ ${money(metrics.profit)}`} range={range} onRange={setRange} />
       </div>
 
+      {/* กราฟแท่ง: ยอดซื้อ/ขายรายวัน */}
+      <Card>
+        <CardHeader>
+          <CardTitle>ยอดซื้อ/ขาย รายวัน</CardTitle>
+          <CardDescription>เปรียบเทียบยอดซื้อและขายในแต่ละวัน</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={barData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis dataKey="label" stroke="hsl(var(--muted-foreground))" />
+              <YAxis stroke="hsl(var(--muted-foreground))" />
+              <RechartsTooltip 
+                contentStyle={{ 
+                  backgroundColor: "hsl(var(--card))", 
+                  border: "1px solid hsl(var(--border))",
+                  borderRadius: "var(--radius)"
+                }}
+              />
+              <Legend />
+              <Bar dataKey="buy" fill={CHART_COLORS[0]} name="ยอดซื้อ" />
+              <Bar dataKey="sell" fill={CHART_COLORS[1]} name="ยอดขาย" />
+            </BarChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        {/* กราฟวงกลม: สินค้าขายดี */}
+        <Card>
+          <CardHeader>
+            <CardTitle>สินค้าขายดี Top 5</CardTitle>
+            <CardDescription>สินค้าที่มียอดขายสูงสุด</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={topProducts}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={(entry) => `${entry.name} (฿${money(entry.amount)})`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="amount"
+                >
+                  {topProducts.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                  ))}
+                </Pie>
+                <RechartsTooltip 
+                  formatter={(value: any) => `฿${money(Number(value))}`}
+                  contentStyle={{ 
+                    backgroundColor: "hsl(var(--card))", 
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: "var(--radius)"
+                  }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* กราฟแท่ง: ยอดขายตามลูกค้า */}
+        <Card>
+          <CardHeader>
+            <CardTitle>ยอดขายตามลูกค้า Top 5</CardTitle>
+            <CardDescription>ลูกค้าที่มียอดซื้อสูงสุด</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={salesByCustomer} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis type="number" stroke="hsl(var(--muted-foreground))" />
+                <YAxis dataKey="name" type="category" stroke="hsl(var(--muted-foreground))" width={100} />
+                <RechartsTooltip 
+                  formatter={(value: any) => `฿${money(Number(value))}`}
+                  contentStyle={{ 
+                    backgroundColor: "hsl(var(--card))", 
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: "var(--radius)"
+                  }}
+                />
+                <Bar dataKey="value" fill={CHART_COLORS[2]} name="ยอดขาย" />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        {/* กราฟวงกลม: รายจ่ายตามประเภท */}
+        <Card>
+          <CardHeader>
+            <CardTitle>รายจ่ายตามประเภท</CardTitle>
+            <CardDescription>การกระจายรายจ่ายในแต่ละประเภท</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={expensesByType}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={(entry) => `${entry.name} (฿${money(entry.value)})`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {expensesByType.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                  ))}
+                </Pie>
+                <RechartsTooltip 
+                  formatter={(value: any) => `฿${money(Number(value))}`}
+                  contentStyle={{ 
+                    backgroundColor: "hsl(var(--card))", 
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: "var(--radius)"
+                  }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* สถิติตะกร้า */}
+        <Card>
+          <CardHeader>
+            <CardTitle>สถิติตะกร้า</CardTitle>
+            <CardDescription>การเคลื่อนไหวของตะกร้า</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">ตะกร้าเข้า</span>
+              <span className="text-2xl font-bold" style={{ color: "hsl(var(--positive))" }}>{basketStats.in}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">ตะกร้าออก</span>
+              <span className="text-2xl font-bold" style={{ color: "hsl(var(--negative))" }}>{basketStats.out}</span>
+            </div>
+            <div className="flex items-center justify-between pt-4 border-t">
+              <span className="text-sm font-semibold">คงเหลือสุทธิ</span>
+              <span className="text-3xl font-extrabold bg-gradient-to-r from-[hsl(var(--brand-1))] via-[hsl(var(--brand-2))] to-[hsl(var(--brand-3))] bg-clip-text text-transparent">
+                {basketStats.net}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* ตารางบิลค้างชำระ */}
+      {dueTop.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>บิลค้างชำระ Top 5</CardTitle>
+            <CardDescription>บิลที่ยังไม่ได้ชำระเรียงตามยอดเงิน</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {dueTop.map((bill: any) => {
+                const amount = Number(bill.total || 0);
+                const pct = maxDue > 0 ? (amount / maxDue) * 100 : 0;
+                return (
+                  <div key={bill.id} className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <Link to={`/bills`} className="font-medium hover:underline">
+                        {bill.customer} ({bill.type === "buy" ? "ซื้อ" : "ขาย"})
+                      </Link>
+                      <span className="font-semibold">฿{money(amount)}</span>
+                    </div>
+                    <Progress value={pct} className="h-2" />
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
     </div>
   );
