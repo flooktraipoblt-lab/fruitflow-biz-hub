@@ -43,7 +43,7 @@ export default function AuditLogs() {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data as AuditLog[];
+      return (data ?? []) as unknown as AuditLog[];
     },
   });
 
