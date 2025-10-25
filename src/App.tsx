@@ -23,41 +23,49 @@ import MailboxPage from "./pages/MailboxPage";
 import Expenses from "./pages/Expenses";
 import Employees from "./pages/Employees";
 import EmployeeProfile from "./pages/EmployeeProfile";
+import AuditLogs from "./pages/AuditLogs";
+import Install from "./pages/Install";
+import { ErrorBoundary } from "./components/common/ErrorBoundary";
+
 const queryClient = new QueryClient();
 
 const App = () => (
-  <HelmetProvider>
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/auth" element={<AuthPage />} />
-            <Route path="/pending-approval" element={<PendingApproval />} />
-            <Route element={<RequireAuth><MainLayout /></RequireAuth>}>
-              <Route path="/" element={<Index />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/bills" element={<Bills />} />
-              <Route path="/create" element={<CreateBill />} />
-              <Route path="/baskets" element={<Baskets />} />
-              <Route path="/customers" element={<Customers />} />
-              <Route path="/customers/:id" element={<CustomerDetail />} />
-              <Route path="/admin" element={<AdminUsers />} />
-              <Route path="/submit" element={<SubmitMailbox />} />
-              <Route path="/mailbox" element={<MailboxPage />} />
-              <Route path="/expenses" element={<Expenses />} />
-              <Route path="/employees" element={<Employees />} />
-              <Route path="/employee-profile/:id" element={<EmployeeProfile />} />
-            </Route>
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="/print/:invoiceId" element={<PrintInvoice />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
-  </HelmetProvider>
+  <ErrorBoundary>
+    <HelmetProvider>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/auth" element={<AuthPage />} />
+              <Route path="/pending-approval" element={<PendingApproval />} />
+              <Route path="/install" element={<Install />} />
+              <Route element={<RequireAuth><MainLayout /></RequireAuth>}>
+                <Route path="/" element={<Index />} />
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/bills" element={<Bills />} />
+                <Route path="/create" element={<CreateBill />} />
+                <Route path="/baskets" element={<Baskets />} />
+                <Route path="/customers" element={<Customers />} />
+                <Route path="/customers/:id" element={<CustomerDetail />} />
+                <Route path="/admin" element={<AdminUsers />} />
+                <Route path="/submit" element={<SubmitMailbox />} />
+                <Route path="/mailbox" element={<MailboxPage />} />
+                <Route path="/expenses" element={<Expenses />} />
+                <Route path="/employees" element={<Employees />} />
+                <Route path="/employee-profile/:id" element={<EmployeeProfile />} />
+                <Route path="/audit-logs" element={<AuditLogs />} />
+              </Route>
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="/print/:invoiceId" element={<PrintInvoice />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </HelmetProvider>
+  </ErrorBoundary>
 );
 
 export default App;

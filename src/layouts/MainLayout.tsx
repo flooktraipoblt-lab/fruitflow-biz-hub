@@ -5,6 +5,8 @@ import { Helmet } from "react-helmet-async";
 import { BarChart3, FilePlus2, ClipboardList, Users, ReceiptText, CreditCard, UserCheck } from "lucide-react";
 import UserMenu from "@/components/auth/UserMenu";
 import MailboxAlertListener from "@/components/common/MailboxAlertListener";
+import MobileNav from "@/components/common/MobileNav";
+import MobileMenuButton from "@/components/common/MobileMenuButton";
 
 const tabs = [
   { to: "/dashboard", label: "Dashboard", Icon: BarChart3 },
@@ -34,7 +36,8 @@ export default function MainLayout() {
             </span>
           </NavLink>
           <div className="flex items-center gap-2">
-            <nav className="flex items-center gap-1 overflow-x-auto">
+            {/* Desktop Navigation */}
+            <nav className="hidden md:flex items-center gap-1 overflow-x-auto">
               {tabs.map(({ to, label, Icon }) => (
                 <NavLink key={to} to={to} end className={({ isActive }) =>
                   cn("focus-visible:outline-none", isActive && "")
@@ -50,20 +53,22 @@ export default function MainLayout() {
                       aria-current={isActive ? "page" : undefined}
                     >
                       <Icon className="opacity-90" />
-                      <span className="hidden sm:inline">{label}</span>
+                      <span className="hidden lg:inline">{label}</span>
                     </Button>
                   )}
                 </NavLink>
               ))}
             </nav>
+            <MobileMenuButton />
             <UserMenu />
           </div>
         </div>
       </header>
       <MailboxAlertListener />
-      <main className="container mx-auto px-4 py-6">
+      <main className="container mx-auto px-4 py-6 pb-24 md:pb-6">
         <Outlet />
       </main>
+      <MobileNav />
     </div>
   );
 }
