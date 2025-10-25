@@ -26,7 +26,7 @@ export default function MainLayout() {
         <meta name="description" content="Fruit Flow: ระบบจัดการบิลซื้อขายและหลังบ้าน ครบจบในที่เดียว" />
         <link rel="canonical" href={window.location.origin + pathname} />
       </Helmet>
-      <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <header className="sticky top-0 z-40 border-b glass animate-slide-up">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <NavLink to="/dashboard" className="font-extrabold text-xl tracking-tight">
             <span className="bg-gradient-to-r from-[hsl(var(--brand-1))] via-[hsl(var(--brand-2))] to-[hsl(var(--brand-3))] bg-clip-text text-transparent">

@@ -15,6 +15,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { FilteredExportButton } from "@/components/common/FilteredExportButton";
+import { LoadingTable } from "@/components/common/LoadingTable";
+
 interface BillRow {
   id: string;
   date: Date;
@@ -141,7 +143,7 @@ export default function Bills() {
 
       <h1 className="text-2xl font-bold">รายการบิล</h1>
 
-      <Card className="hover-scale">
+      <Card className="hover-scale smooth-shadow">
         <CardHeader>
           <CardTitle>ตัวกรอง</CardTitle>
         </CardHeader>
@@ -248,7 +250,7 @@ export default function Bills() {
         </CardContent>
       </Card>
 
-      <Card className="hover-scale">
+      <Card className="hover-scale smooth-shadow">
         <CardHeader>
           <CardTitle>บิลล่าสุด</CardTitle>
         </CardHeader>
@@ -268,7 +270,9 @@ export default function Bills() {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={6}>กำลังโหลด...</TableCell>
+                    <TableCell colSpan={6}>
+                      <LoadingTable columns={6} rows={5} />
+                    </TableCell>
                   </TableRow>
                 ) : filtered.length === 0 ? (
                   <TableRow>

@@ -21,6 +21,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Search, User, Phone, Tags as TagsIcon, Pencil, Trash2, Save, Plus, AlertTriangle } from "lucide-react";
+import { LoadingTable } from "@/components/common/LoadingTable";
+
 interface Customer {
   id: string;
   name: string;
@@ -41,7 +43,7 @@ export default function Customers() {
 
   const { customerNames } = useAutocompleteData();
 
-  const { data: customers = [], refetch } = useQuery<Customer[]>({
+  const { data: customers = [], isLoading, refetch } = useQuery<Customer[]>({
     queryKey: ["customers"],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
@@ -96,7 +98,7 @@ export default function Customers() {
       </Helmet>
       <h1 className="text-2xl font-bold">ลูกค้า</h1>
 
-      <Card>
+      <Card className="smooth-shadow">
         <CardHeader>
           <CardTitle>เพิ่มลูกค้า</CardTitle>
         </CardHeader>
@@ -147,7 +149,7 @@ export default function Customers() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="smooth-shadow">
         <CardHeader>
           <CardTitle>ค้นหาและรายการลูกค้า</CardTitle>
         </CardHeader>
@@ -168,9 +170,15 @@ export default function Customers() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.length === 0 ? (
+                {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={3}>ไม่พบข้อมูล</TableCell>
+                    <TableCell colSpan={4}>
+                      <LoadingTable columns={4} rows={5} />
+                    </TableCell>
+                  </TableRow>
+                ) : filtered.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4}>ไม่พบข้อมูล</TableCell>
                   </TableRow>
                 ) : filtered.map((c) => (
                   <TableRow key={c.id}>
