@@ -7,6 +7,8 @@ import { ExportButton } from "@/components/common/ExportButton";
 import DigitalClock from "@/components/common/DigitalClock";
 import Mailbox from "@/components/common/Mailbox";
 import { NotificationDialog, type NotificationItem } from "@/components/modals/NotificationDialog";
+import { AttendanceShortcuts } from "@/components/dashboard/AttendanceShortcuts";
+import { BillPDFExport } from "@/components/dashboard/BillPDFExport";
 import { useEffect, useMemo, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { BellRing, ExternalLink, Crown, UserRound, CalendarDays } from "lucide-react";
@@ -218,8 +220,16 @@ export default function Dashboard() {
       {/* กราฟแท่ง: ยอดซื้อ/ขายรายวัน */}
       <Card>
         <CardHeader>
-          <CardTitle>ยอดซื้อ/ขาย รายวัน</CardTitle>
-          <CardDescription>เปรียบเทียบยอดซื้อและขายในแต่ละวัน</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>ยอดซื้อ/ขาย รายวัน</CardTitle>
+              <CardDescription>เปรียบเทียบยอดซื้อและขายในแต่ละวัน</CardDescription>
+            </div>
+            <div className="flex gap-2">
+              <AttendanceShortcuts />
+              <BillPDFExport />
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
