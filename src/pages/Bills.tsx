@@ -143,7 +143,7 @@ export default function Bills() {
 
       <h1 className="text-2xl font-bold">รายการบิล</h1>
 
-      <Card className="hover-scale smooth-shadow">
+      <Card>
         <CardHeader>
           <CardTitle>ตัวกรอง</CardTitle>
         </CardHeader>
@@ -250,7 +250,7 @@ export default function Bills() {
         </CardContent>
       </Card>
 
-      <Card className="hover-scale smooth-shadow">
+      <Card>
         <CardHeader>
           <CardTitle>บิลล่าสุด</CardTitle>
         </CardHeader>
