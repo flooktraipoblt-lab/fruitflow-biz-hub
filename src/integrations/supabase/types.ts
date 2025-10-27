@@ -258,9 +258,11 @@ export type Database = {
           bill_no: string
           created_at: string
           customer: string
+          customer_note: string | null
           id: string
           owner_id: string
           paper_cost: number | null
+          phone: string | null
           processing_price_kg: number | null
           status: string
           total: number
@@ -273,9 +275,11 @@ export type Database = {
           bill_no?: string
           created_at?: string
           customer: string
+          customer_note?: string | null
           id?: string
           owner_id: string
           paper_cost?: number | null
+          phone?: string | null
           processing_price_kg?: number | null
           status?: string
           total?: number
@@ -288,9 +292,11 @@ export type Database = {
           bill_no?: string
           created_at?: string
           customer?: string
+          customer_note?: string | null
           id?: string
           owner_id?: string
           paper_cost?: number | null
+          phone?: string | null
           processing_price_kg?: number | null
           status?: string
           total?: number
@@ -941,10 +947,7 @@ export type Database = {
         }
         Returns: boolean
       }
-      is_approved: {
-        Args: { _user_id: string }
-        Returns: boolean
-      }
+      is_approved: { Args: { _user_id: string }; Returns: boolean }
       signin_with_username_or_email: {
         Args: { identifier: string; user_password: string }
         Returns: Json

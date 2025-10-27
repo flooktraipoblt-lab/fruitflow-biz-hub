@@ -89,38 +89,60 @@ export default function PrintInvoice() {
         useCORS: true,
       });
 
-      // Convert canvas to blob
+      // Convert canvas to blob and upload to storage
       canvas.toBlob(async (blob) => {
         if (!blob || !bill) return;
 
-        // Save share data to Supabase
-        const shareData = {
-          bill_id: bill.id,
-          bill_no: bill.bill_no,
-          customer_name: bill.customer,
-          bill_type: bill.type,
-          total_amount: bill.total,
-          bill_date: bill.bill_date,
-          shared_at: new Date().toISOString(),
-          owner_id: session?.user.id,
-        };
+        try {
+          // Upload image to Supabase storage
+          const fileName = `bill-${bill.bill_no}-${Date.now()}.png`;
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('profiles')
+            .upload(`bill-shares/${fileName}`, blob, {
+              contentType: 'image/png',
+              cacheControl: '3600',
+            });
 
-        const { error } = await supabase.from('bill_shares').insert(shareData);
-        if (error) {
-          console.error('Error saving share data:', error);
+          if (uploadError) {
+            console.error('Upload error:', uploadError);
+            toast({ title: "เกิดข้อผิดพลาดในการอัพโหลดรูป", variant: "destructive" });
+            return;
+          }
+
+          // Get public URL
+          const { data: { publicUrl } } = supabase.storage
+            .from('profiles')
+            .getPublicUrl(`bill-shares/${fileName}`);
+
+          // Save share data to Supabase
+          const shareData = {
+            bill_id: bill.id,
+            bill_no: bill.bill_no,
+            customer_name: bill.customer,
+            bill_type: bill.type,
+            total_amount: bill.total,
+            bill_date: bill.bill_date,
+            shared_at: new Date().toISOString(),
+            owner_id: session?.user.id,
+          };
+
+          const { error } = await supabase.from('bill_shares').insert(shareData);
+          if (error) {
+            console.error('Error saving share data:', error);
+          }
+
+          // Create share text with image URL
+          const shareText = `บิลเลขที่: ${bill.bill_no}\nวันที่: ${format(new Date(bill.bill_date), "dd/MM/yyyy")}\nลูกค้า: ${bill.customer}\nยอดเงิน: ${parseFloat(bill.total).toLocaleString()} บาท\n${publicUrl}`;
+
+          // Open Line with text and image URL
+          const lineUrl = `https://line.me/R/share?text=${encodeURIComponent(shareText)}`;
+          window.open(lineUrl, '_blank');
+
+          toast({ title: "แชร์ไป Line สำเร็จ" });
+        } catch (error) {
+          console.error('Error in share process:', error);
+          toast({ title: "เกิดข้อผิดพลาดในการแชร์", variant: "destructive" });
         }
-
-        // Create share text
-        const shareText = `วันที่ : ${format(new Date(bill.bill_date), "dd/MM/yyyy")}\nชื่อลูกค้า : ${bill.customer}\nประเภทบิล : ${bill.type}\nยอดเงินรวม : ${parseFloat(bill.total).toLocaleString()} บาท\nรูปภาพบิล :`;
-
-        // Create temporary link with image
-        const imageUrl = canvas.toDataURL('image/png');
-        const link = document.createElement('a');
-        link.href = `https://line.me/R/msg/text/?${encodeURIComponent(shareText)}`;
-        link.target = '_blank';
-        link.click();
-
-        toast({ title: "เปิด Line แล้ว กรุณาแนบรูปภาพด้วยตนเอง" });
       }, 'image/png', 1.0);
     } catch (error) {
       console.error('Error sharing to Line:', error);
@@ -421,13 +443,23 @@ export default function PrintInvoice() {
                   <div className="info-value">{invType || '-'}</div>
                 </div>
                 <div className="info-item" style={{ gridColumn: 'span 2' }}>
-                  <div className="info-label">ชื่อลูกค้า</div>
-                  <div className="info-value">{cust || '-'}</div>
-                </div>
-                <div className="info-item" style={{ gridColumn: 'span 4' }}>
                   <div className="info-label">เลขที่บิล</div>
                   <div className="info-value">{receiptNo || '-'}</div>
                 </div>
+                <div className="info-item" style={{ gridColumn: 'span 2' }}>
+                  <div className="info-label">ชื่อลูกค้า</div>
+                  <div className="info-value">{cust || '-'}</div>
+                </div>
+                <div className="info-item" style={{ gridColumn: 'span 2' }}>
+                  <div className="info-label">{bill?.phone ? 'เบอร์โทร' : ''}</div>
+                  <div className="info-value">{bill?.phone || ''}</div>
+                </div>
+                {bill?.customer_note && (
+                  <div className="info-item" style={{ gridColumn: 'span 4' }}>
+                    <div className="info-label">หมายเหตุ</div>
+                    <div className="info-value">{bill.customer_note}</div>
+                  </div>
+                )}
               </>
             ) : (
               <>
@@ -521,7 +553,7 @@ export default function PrintInvoice() {
             </div>
           )}
 
-          <div className="foot">
+          <div className="foot" style={{ marginTop: isOrangeBill ? '8mm' : '4mm' }}>
             {pageIndex === pages.length - 1 ? (
               <>
                 <div className="sign">

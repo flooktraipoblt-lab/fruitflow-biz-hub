@@ -697,6 +697,14 @@ export default function CreateBill() {
                     emptyText="ไม่พบลูกค้า"
                   />
                 </div>
+                <div className="grid gap-2">
+                  <Label>เบอร์โทร</Label>
+                  <Input type="text" value={orangePhone} onChange={(e) => setOrangePhone(e.target.value)} placeholder="หมายเลขโทรศัพท์" />
+                </div>
+                <div className="grid gap-2">
+                  <Label>หมายเหตุ</Label>
+                  <Input type="text" value={orangeNote} onChange={(e) => setOrangeNote(e.target.value)} placeholder="หมายเหตุเพิ่มเติม" />
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -870,22 +878,6 @@ export default function CreateBill() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>หมายเหตุเพิ่มเติม</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-2">
-                <Label>สำรับ/ส่งสังค่า</Label>
-                <Input type="text" value={orangeReceipt} onChange={(e) => setOrangeReceipt(e.target.value)} placeholder="" />
-              </div>
-              <div className="grid gap-2">
-                <Label>หมายเหตุ</Label>
-                <Input type="text" value={orangeNote} onChange={(e) => setOrangeNote(e.target.value)} placeholder="" />
-              </div>
-            </CardContent>
-          </Card>
-
           <div className="flex items-center gap-2 justify-end">
             <Button variant="gradient" onClick={async () => {
               if (!customer || !date) {
@@ -943,6 +935,8 @@ export default function CreateBill() {
                     processing_price_kg: processingPrice,
                     paper_cost: paperCost,
                     basket_quantity: Number(orangeBasketQty) || 0,
+                    phone: orangePhone || null,
+                    customer_note: orangeNote || null,
                   })
                   .select()
                   .single();
