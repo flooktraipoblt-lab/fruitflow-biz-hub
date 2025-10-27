@@ -269,11 +269,16 @@ export default function Bills() {
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={6}>
-                      <LoadingTable columns={6} rows={5} />
-                    </TableCell>
-                  </TableRow>
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <TableRow key={i}>
+                      <TableCell><div className="h-4 w-24 bg-muted animate-pulse rounded" /></TableCell>
+                      <TableCell><div className="h-4 w-20 bg-muted animate-pulse rounded" /></TableCell>
+                      <TableCell><div className="h-4 w-32 bg-muted animate-pulse rounded" /></TableCell>
+                      <TableCell><div className="h-4 w-24 bg-muted animate-pulse rounded ml-auto" /></TableCell>
+                      <TableCell><div className="h-4 w-28 bg-muted animate-pulse rounded" /></TableCell>
+                      <TableCell><div className="h-4 w-32 bg-muted animate-pulse rounded ml-auto" /></TableCell>
+                    </TableRow>
+                  ))
                 ) : filtered.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6}>ไม่พบข้อมูล</TableCell>
