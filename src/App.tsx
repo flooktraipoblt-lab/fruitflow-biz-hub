@@ -14,6 +14,7 @@ import Baskets from "./pages/Baskets";
 import Customers from "./pages/Customers";
 import CustomerDetail from "./pages/CustomerDetail";
 import PrintInvoice from "./pages/PrintInvoice";
+import PrintMultipleBills from "./pages/PrintMultipleBills";
 import AuthPage from "./pages/Auth";
 import RequireAuth from "./components/auth/RequireAuth";
 import PendingApproval from "./pages/PendingApproval";
@@ -59,6 +60,7 @@ const App = () => (
               </Route>
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="/print/:invoiceId" element={<PrintInvoice />} />
+              <Route path="/print-bills" element={<PrintMultipleBills />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

@@ -47,12 +47,9 @@ export function BillsPDFExport() {
         return;
       }
 
-      // For now, navigate to print page for each bill
-      // Open multiple windows in sequence
-      for (const bill of bills) {
-        window.open(`/print/${bill.id}`, '_blank');
-        await new Promise(resolve => setTimeout(resolve, 500)); // Small delay between windows
-      }
+      // Open single page with all bills
+      const url = `/print-bills?fromDate=${fromDate.toISOString()}&toDate=${toDate.toISOString()}`;
+      window.open(url, '_blank');
       
       toast({ 
         title: "สำเร็จ", 
