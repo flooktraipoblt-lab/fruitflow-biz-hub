@@ -47,6 +47,7 @@ export default function CreateBill() {
   const pendingActionRef = useRef<null | (() => Promise<void>)>(null);
 
   // Orange bill specific states
+  const [orangeType, setOrangeType] = useState<"buy" | "sell">("sell");
   const [orangePhone, setOrangePhone] = useState("");
   const [orangeBasketQty, setOrangeBasketQty] = useState<number | "">("");
   const [orangeItems, setOrangeItems] = useState<ItemRow[]>([{ id: crypto.randomUUID(), name: "", qty: "", weight: "", fraction: "", price: "" }]);
@@ -698,6 +699,18 @@ export default function CreateBill() {
                   />
                 </div>
                 <div className="grid gap-2">
+                  <Label>ประเภทบิล</Label>
+                  <Select value={orangeType} onValueChange={(v: any) => setOrangeType(v)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="เลือกประเภท" />
+                    </SelectTrigger>
+                    <SelectContent className="z-50 bg-background">
+                      <SelectItem value="buy">บิลซื้อ</SelectItem>
+                      <SelectItem value="sell">บิลขาย</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
                   <Label>เบอร์โทร</Label>
                   <Input type="text" value={orangePhone} onChange={(e) => setOrangePhone(e.target.value)} placeholder="หมายเลขโทรศัพท์" />
                 </div>
@@ -929,7 +942,7 @@ export default function CreateBill() {
                   .insert({
                     bill_date: date.toISOString(),
                     customer,
-                    type: "sell",
+                    type: orangeType,
                     total: grandTotal,
                     status: "due",
                     processing_price_kg: processingPrice,

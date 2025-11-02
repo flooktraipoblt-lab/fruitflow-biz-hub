@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -49,6 +50,9 @@ export default function Employees() {
   const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
   const [isEmployeeDialogOpen, setIsEmployeeDialogOpen] = useState(false);
   const [isWithdrawalDialogOpen, setIsWithdrawalDialogOpen] = useState(false);
+  const [isBulkAttendanceDialogOpen, setIsBulkAttendanceDialogOpen] = useState(false);
+  const [bulkAttendanceDate, setBulkAttendanceDate] = useState<Date>(new Date());
+  const [bulkAttendanceType, setBulkAttendanceType] = useState<"work" | "holiday" | "half">("work");
 
   const { employeeNames } = useAutocompleteData();
 
@@ -223,6 +227,50 @@ export default function Employees() {
     },
   });
 
+  // Bulk attendance mutation
+  const bulkAttendanceMutation = useMutation({
+    mutationFn: async (data: { date: Date; type: "work" | "holiday" | "half" }) => {
+      const activeEmployees = employees.filter(emp => !emp.end_date);
+      
+      // First, delete any existing absences for this date for all employees
+      const { error: deleteError } = await supabase
+        .from("employee_absences")
+        .delete()
+        .eq("date", data.date.toISOString().split('T')[0])
+        .in("employee_id", activeEmployees.map(e => e.id));
+      
+      if (deleteError) throw deleteError;
+
+      // If not "work", insert absences
+      if (data.type !== "work") {
+        const absenceType = data.type === "holiday" ? "absent" : "half_day";
+        const absencesToInsert = activeEmployees.map(emp => ({
+          employee_id: emp.id,
+          date: data.date.toISOString().split('T')[0],
+          type: absenceType,
+          owner_id: session?.user.id,
+        }));
+
+        const { error: insertError } = await supabase
+          .from("employee_absences")
+          .insert(absencesToInsert);
+        
+        if (insertError) throw insertError;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["employee-absences"] });
+      toast({ 
+        title: "บันทึกการเข้างานสำเร็จ",
+        description: `บันทึกสถานะสำหรับพนักงานทั้งหมดแล้ว` 
+      });
+      setIsBulkAttendanceDialogOpen(false);
+    },
+    onError: () => {
+      toast({ title: "เกิดข้อผิดพลาด", variant: "destructive" });
+    },
+  });
+
   // Filter employees
   const filteredEmployees = employees.filter((employee) =>
     employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -324,13 +372,76 @@ export default function Employees() {
                   />
                 </div>
               </div>
-              <Dialog open={isEmployeeDialogOpen} onOpenChange={setIsEmployeeDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button onClick={() => { setEditingEmployee(null); employeeForm.reset(); }}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    เพิ่มพนักงาน
-                  </Button>
-                </DialogTrigger>
+              <div className="flex gap-2">
+                <Dialog open={isBulkAttendanceDialogOpen} onOpenChange={setIsBulkAttendanceDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline">
+                      จัดการทั้งหมด
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>จัดการการเข้างานพนักงานทั้งหมด</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div className="grid gap-2">
+                        <Label>เลือกวันที่</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button variant="outline" className="w-full justify-start">
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {bulkAttendanceDate ? format(bulkAttendanceDate, "dd/MM/yyyy") : "เลือกวันที่"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent>
+                            <Calendar
+                              mode="single"
+                              selected={bulkAttendanceDate}
+                              onSelect={(date) => date && setBulkAttendanceDate(date)}
+                              className="pointer-events-auto"
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                      <div className="grid gap-2">
+                        <Label>สถานะการทำงาน</Label>
+                        <Select value={bulkAttendanceType} onValueChange={(v: any) => setBulkAttendanceType(v)}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="เลือกสถานะ" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="work">ทำงาน</SelectItem>
+                            <SelectItem value="holiday">หยุดงาน</SelectItem>
+                            <SelectItem value="half">ทำครึ่งวัน</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        จะบันทึกสถานะสำหรับพนักงานที่ยังทำงานอยู่ทั้งหมด ({employees.filter(e => !e.end_date).length} คน)
+                      </p>
+                      <div className="flex justify-end gap-2">
+                        <Button type="button" variant="outline" onClick={() => setIsBulkAttendanceDialogOpen(false)}>
+                          ยกเลิก
+                        </Button>
+                        <Button onClick={() => {
+                          bulkAttendanceMutation.mutate({
+                            date: bulkAttendanceDate,
+                            type: bulkAttendanceType
+                          });
+                        }}>
+                          บันทึก
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+                <Dialog open={isEmployeeDialogOpen} onOpenChange={setIsEmployeeDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button onClick={() => { setEditingEmployee(null); employeeForm.reset(); }}>
+                      <Plus className="mr-2 h-4 w-4" />
+                      เพิ่มพนักงาน
+                    </Button>
+                  </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle>{editingEmployee ? "แก้ไขข้อมูลพนักงาน" : "เพิ่มพนักงาน"}</DialogTitle>
@@ -442,6 +553,7 @@ export default function Employees() {
                 </DialogContent>
               </Dialog>
             </div>
+          </div>
           </CardContent>
         </Card>
 
