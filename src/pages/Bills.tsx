@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Calendar as CalendarIcon, Printer, Pencil, Trash2 } from "lucide-react";
 import { useMemo, useState, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -31,6 +32,8 @@ export default function Bills() {
   const [type, setType] = useState<"all" | "buy" | "sell">("all");
   const [status, setStatus] = useState<"all" | "paid" | "due">("all");
   const [range, setRange] = useState<{ from?: Date; to?: Date }>({});
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [updateStatusData, setUpdateStatusData] = useState<{ id: string; status: "paid" | "due" } | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -77,9 +80,10 @@ export default function Bills() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async () => {
+      if (!deleteId) return;
       // ลบจาก Supabase ก่อน
-      const { error } = await (supabase as any).from("bills").delete().eq("id", id);
+      const { error } = await (supabase as any).from("bills").delete().eq("id", deleteId);
       if (error) throw error;
 
       // ส่งข้อมูลไปยัง n8n webhook (ไม่ให้ fail webhook ส่งผลต่อการลบ)
@@ -88,7 +92,7 @@ export default function Bills() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            bill_id: id,
+            bill_id: deleteId,
             action: "delete",
             timestamp: new Date().toISOString()
           }),
@@ -100,6 +104,7 @@ export default function Bills() {
     },
     onSuccess: () => {
       toast({ title: "ลบสำเร็จ" });
+      setDeleteId(null);
       refetch();
     },
     onError: (err: any) => {
@@ -108,15 +113,17 @@ export default function Bills() {
   });
 
   const updateStatusMutation = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: "paid" | "due" }) => {
+    mutationFn: async () => {
+      if (!updateStatusData) return;
       const { error } = await (supabase as any)
         .from("bills")
-        .update({ status })
-        .eq("id", id);
+        .update({ status: updateStatusData.status })
+        .eq("id", updateStatusData.id);
       if (error) throw error;
     },
     onSuccess: () => {
       toast({ title: "อัปเดตสถานะสำเร็จ" });
+      setUpdateStatusData(null);
       refetch();
     },
     onError: (err: any) => {
@@ -302,7 +309,7 @@ export default function Bills() {
                       <TableCell>
                         <Select
                           value={r.status}
-                          onValueChange={(v: any) => updateStatusMutation.mutate({ id: r.id, status: v })}
+                          onValueChange={(v: any) => setUpdateStatusData({ id: r.id, status: v })}
                         >
                           <SelectTrigger className={cn("w-[140px] border", r.status === "due" ? "text-[hsl(var(--destructive))] border-[hsl(var(--destructive))]" : "text-[hsl(var(--positive))] border-[hsl(var(--positive))]")}>
                             <SelectValue />
@@ -319,7 +326,7 @@ export default function Bills() {
                           window.open(url, '_blank', 'noopener,noreferrer');
                         }} aria-label="พิมพ์"><Printer /></Button>
                         <Button size="sm" variant="outline" className="hover-scale" aria-label="แก้ไข" onClick={() => navigate(`/create?id=${r.id}`)}><Pencil /></Button>
-                        <Button size="sm" variant="destructive" className="hover-scale" aria-label="ลบ" onClick={() => deleteMutation.mutate(r.id)}><Trash2 /></Button>
+                        <Button size="sm" variant="destructive" className="hover-scale" aria-label="ลบ" onClick={() => setDeleteId(r.id)}><Trash2 /></Button>
                       </TableCell>
                     </TableRow>
                   ))
@@ -329,6 +336,40 @@ export default function Bills() {
           </div>
         </CardContent>
       </Card>
+
+      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>ยืนยันการลบ</AlertDialogTitle>
+            <AlertDialogDescription>
+              คุณต้องการลบบิลนี้ใช่หรือไม่? การดำเนินการนี้ไม่สามารถย้อนกลับได้
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
+            <AlertDialogAction onClick={() => deleteMutation.mutate()} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              ลบ
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!updateStatusData} onOpenChange={(open) => !open && setUpdateStatusData(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>ยืนยันการเปลี่ยนสถานะ</AlertDialogTitle>
+            <AlertDialogDescription>
+              คุณต้องการเปลี่ยนสถานะบิลเป็น "{updateStatusData?.status === 'paid' ? 'ชำระแล้ว' : 'ค้างจ่าย'}" ใช่หรือไม่?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
+            <AlertDialogAction onClick={() => updateStatusMutation.mutate()}>
+              ยืนยัน
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -242,38 +242,37 @@ export default function PrintMultipleBills() {
             <div className="brand-row">
               <div className="brand-logo">TSF</div>
               <div className="brand-info">
-                <div className="company-name">บริษัทสะกาจบูรณ์ผลผลิตพริก จำกัด</div>
-                <div className="brand-sub">ที่อยู่ 60/7 หมู่ 3 ตำบล บางเจ้า ตำบล พระพรหม จังวัด นครพรหม 80000<br />เลขประจำตัวผู้เสียภาษี 0805568000436</div>
+                <div className="company-name">บริษัทตระกาญจน์สยามฟรุ๊ต จำกัด</div>
+                <div className="brand-sub">ที่อยู่ 60/7 หมู่ 3 ตำบล นาพรุ อำเภอ พระพรหม จังหวัด นครศรีธรรมราช 80000</div>
+                <div className="brand-sub">เลขประจำตัวผู้เสียภาษี 0805568000436</div>
               </div>
             </div>
 
             <div className="info-grid">
-              <div className="info-item">
-                <div className="info-label">วันที่</div>
-                <div className="info-value">{dateStr}</div>
-              </div>
-              <div className="info-item">
-                <div className="info-label">ประเภทบิล</div>
-                <div className="info-value">{typeLabel}</div>
-              </div>
               {isOrangeBill ? (
                 <>
                   <div className="info-item">
-                    <div className="info-label">เลขที่บิล</div>
-                    <div className="info-value">{bill.bill_no}</div>
+                    <div className="info-label">วันที่</div>
+                    <div className="info-value">{dateStr || '-'}</div>
                   </div>
                   <div className="info-item">
-                    <div className="info-label">ชื่อลูกค้า</div>
-                    <div className="info-value">{bill.customer}</div>
+                    <div className="info-label">ประเภทบิล</div>
+                    <div className="info-value">{typeLabel || '-'}</div>
                   </div>
-                  {bill.phone && (
-                    <div className="info-item" style={{ gridColumn: 'span 2' }}>
-                      <div className="info-label">เบอร์โทร</div>
-                      <div className="info-value">{bill.phone}</div>
-                    </div>
-                  )}
+                  <div className="info-item" style={{ gridColumn: 'span 2' }}>
+                    <div className="info-label">เลขที่บิล</div>
+                    <div className="info-value">{bill.bill_no || '-'}</div>
+                  </div>
+                  <div className="info-item" style={{ gridColumn: 'span 2' }}>
+                    <div className="info-label">ชื่อลูกค้า</div>
+                    <div className="info-value">{bill.customer || '-'}</div>
+                  </div>
+                  <div className="info-item" style={{ gridColumn: 'span 2' }}>
+                    <div className="info-label">{bill.phone ? 'เบอร์โทร' : ''}</div>
+                    <div className="info-value">{bill.phone || ''}</div>
+                  </div>
                   {bill.customer_note && (
-                    <div className="info-item" style={{ gridColumn: 'span 2' }}>
+                    <div className="info-item" style={{ gridColumn: 'span 4' }}>
                       <div className="info-label">หมายเหตุ</div>
                       <div className="info-value">{bill.customer_note}</div>
                     </div>
@@ -282,12 +281,20 @@ export default function PrintMultipleBills() {
               ) : (
                 <>
                   <div className="info-item">
+                    <div className="info-label">วันที่</div>
+                    <div className="info-value">{dateStr || '-'}</div>
+                  </div>
+                  <div className="info-item">
+                    <div className="info-label">ประเภทบิล</div>
+                    <div className="info-value">{typeLabel || '-'}</div>
+                  </div>
+                  <div className="info-item">
                     <div className="info-label">ชื่อลูกค้า</div>
-                    <div className="info-value">{bill.customer}</div>
+                    <div className="info-value">{bill.customer || '-'}</div>
                   </div>
                   <div className="info-item">
                     <div className="info-label">เลขที่บิล</div>
-                    <div className="info-value">{bill.bill_no}</div>
+                    <div className="info-value">{bill.bill_no || '-'}</div>
                   </div>
                 </>
               )}
@@ -326,16 +333,22 @@ export default function PrintMultipleBills() {
 
             {isOrangeBill && (
               <div className="expense-section">
-                <div className="expense-title">ค่าใช้จ่ายเพิ่มเติม</div>
+                <div className="expense-title">ค่าใช้จ่ายและสรุปยอด</div>
                 <div className="expense-grid">
-                  <div>ค่าแรงจัดการ (น้ำหนัก {nf.format(totalWeight)} กก. × {nf.format(Number(bill.processing_price_kg) || 0)} บาท/กก.)</div>
-                  <div>{nf.format(processingCost)} บาท</div>
-                  <div>ค่ากระดาษและถุง</div>
-                  <div>{nf.format(paperCost)} บาท</div>
-                  <div>ตะกร้า ({basketQuantity} ใบ)</div>
-                  <div>-</div>
-                  <div className="expense-total">รวมค่าใช้จ่ายเพิ่มเติม</div>
-                  <div className="expense-total">{nf.format(processingCost + paperCost)} บาท</div>
+                  <div>น้ำหนักรวม:</div>
+                  <div style={{ fontWeight: '700' }}>{nf.format(totalWeight)} กก.</div>
+                  
+                  <div>ค่าร่อน ล้าง แว็กซ์ ({nf.format(Number(bill.processing_price_kg) || 0)} บาท/กก.):</div>
+                  <div style={{ fontWeight: '700' }}>{nf.format(processingCost)} บาท</div>
+                  
+                  <div>ค่ากระดาษ:</div>
+                  <div style={{ fontWeight: '700' }}>{nf.format(paperCost)} บาท</div>
+                  
+                  <div>จำนวนส้มทั้งหมด:</div>
+                  <div style={{ fontWeight: '700' }}>{basketQuantity} ตะกร้า</div>
+                  
+                  <div className="expense-total">จำนวนเงินรวมทั้งหมด:</div>
+                  <div className="expense-total">{nf.format(finalTotal)} บาท</div>
                 </div>
               </div>
             )}
@@ -346,7 +359,7 @@ export default function PrintMultipleBills() {
                 <div className="line">ผู้จ่ายเงิน</div>
               </div>
               <div className="total-box">
-                ราคารวม: {nf.format(finalTotal)} บาท
+                {isOrangeBill ? `ยอดสุทธิ: ${nf.format(finalTotal)} บาท` : `ราคารวม: ${nf.format(finalTotal)} บาท`}
               </div>
             </div>
           </div>
