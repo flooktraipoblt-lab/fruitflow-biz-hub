@@ -140,6 +140,17 @@ export default function Bills() {
     return true;
   }), [rows, q, type, status, range]);
 
+  const stats = useMemo(() => {
+    const totalBills = filtered.length;
+    const totalAmount = filtered.reduce((sum, bill) => sum + bill.total, 0);
+    const dueBills = filtered.filter(bill => bill.status === "due").length;
+    const dueAmount = filtered.filter(bill => bill.status === "due").reduce((sum, bill) => sum + bill.total, 0);
+    const paidBills = filtered.filter(bill => bill.status === "paid").length;
+    const paidAmount = filtered.filter(bill => bill.status === "paid").reduce((sum, bill) => sum + bill.total, 0);
+    
+    return { totalBills, totalAmount, dueBills, dueAmount, paidBills, paidAmount };
+  }, [filtered]);
+
   return (
     <div className="space-y-6 animate-fade-in">
       <Helmet>
@@ -149,6 +160,48 @@ export default function Bills() {
       </Helmet>
 
       <h1 className="text-2xl font-bold">รายการบิล</h1>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">จำนวนบิลทั้งหมด</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.totalBills}</div>
+            <p className="text-xs text-muted-foreground mt-1">บิลที่กรองแล้ว</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">ยอดรวมทั้งหมด</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">฿{stats.totalAmount.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground mt-1">ยอดรวมทั้งหมด</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">บิลค้างจ่าย</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-destructive">{stats.dueBills}</div>
+            <p className="text-xs text-muted-foreground mt-1">฿{stats.dueAmount.toLocaleString()}</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">บิลชำระแล้ว</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-[hsl(var(--positive))]">{stats.paidBills}</div>
+            <p className="text-xs text-muted-foreground mt-1">฿{stats.paidAmount.toLocaleString()}</p>
+          </CardContent>
+        </Card>
+      </div>
 
       <Card>
         <CardHeader>
