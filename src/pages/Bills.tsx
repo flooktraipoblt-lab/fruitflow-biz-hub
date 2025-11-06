@@ -80,10 +80,9 @@ export default function Bills() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async () => {
-      if (!deleteId) return;
+    mutationFn: async (id: string) => {
       // ลบจาก Supabase ก่อน
-      const { error } = await (supabase as any).from("bills").delete().eq("id", deleteId);
+      const { error } = await (supabase as any).from("bills").delete().eq("id", id);
       if (error) throw error;
 
       // ส่งข้อมูลไปยัง n8n webhook (ไม่ให้ fail webhook ส่งผลต่อการลบ)
@@ -92,7 +91,7 @@ export default function Bills() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            bill_id: deleteId,
+            bill_id: id,
             action: "delete",
             timestamp: new Date().toISOString()
           }),
@@ -108,7 +107,8 @@ export default function Bills() {
       refetch();
     },
     onError: (err: any) => {
-      toast({ title: "ลบไม่สำเร็จ", description: err.message });
+      toast({ title: "ลบไม่สำเร็จ", description: err.message, variant: "destructive" });
+      setDeleteId(null);
     },
   });
 
@@ -347,7 +347,14 @@ export default function Bills() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
-            <AlertDialogAction onClick={() => deleteMutation.mutate()} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction 
+              onClick={() => {
+                if (deleteId) {
+                  deleteMutation.mutate(deleteId);
+                }
+              }} 
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
               ลบ
             </AlertDialogAction>
           </AlertDialogFooter>
