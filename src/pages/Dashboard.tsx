@@ -1,6 +1,7 @@
 import { Helmet } from "react-helmet-async";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import { ExportButton } from "@/components/common/ExportButton";
 import DigitalClock from "@/components/common/DigitalClock";
 import Mailbox from "@/components/common/Mailbox";
@@ -9,6 +10,17 @@ import { BillsPDFExport } from "@/components/dashboard/BillsPDFExport";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
+import { 
+  FileText, 
+  Receipt, 
+  Users, 
+  UserSquare2, 
+  Wallet, 
+  ShoppingBasket,
+  TrendingUp,
+  Settings
+} from "lucide-react";
 
 const money = (n: number) => n.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -16,6 +28,7 @@ type RangeKey = "today" | "7d" | "month";
 
 export default function Dashboard() {
   const [range, setRange] = useState<RangeKey>("today");
+  const navigate = useNavigate();
 
   const rangeDates = useMemo(() => {
     const now = new Date();
@@ -95,11 +108,106 @@ export default function Dashboard() {
         <MetricCard title="กำไร" value={`฿ ${money(metrics.profit)}`} range={range} onRange={setRange} />
       </div>
 
-      {/* Action Buttons */}
-      <div className="flex gap-2 justify-end flex-wrap">
-        <AttendanceShortcuts />
-        <BillsPDFExport />
-      </div>
+      {/* Quick Actions */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5" />
+            ทางลัดด่วน
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            <Button
+              variant="outline"
+              className="h-auto flex flex-col items-center gap-2 py-4 hover-scale group"
+              onClick={() => navigate("/create")}
+            >
+              <div className="rounded-full bg-primary/10 p-3 group-hover:bg-primary/20 transition-colors">
+                <FileText className="h-6 w-6 text-primary" />
+              </div>
+              <span className="text-sm font-medium">สร้างบิล</span>
+            </Button>
+
+            <Button
+              variant="outline"
+              className="h-auto flex flex-col items-center gap-2 py-4 hover-scale group"
+              onClick={() => navigate("/bills")}
+            >
+              <div className="rounded-full bg-[hsl(var(--brand-3))]/10 p-3 group-hover:bg-[hsl(var(--brand-3))]/20 transition-colors">
+                <Receipt className="h-6 w-6 text-[hsl(var(--brand-3))]" />
+              </div>
+              <span className="text-sm font-medium">รายการบิล</span>
+            </Button>
+
+            <Button
+              variant="outline"
+              className="h-auto flex flex-col items-center gap-2 py-4 hover-scale group"
+              onClick={() => navigate("/customers")}
+            >
+              <div className="rounded-full bg-[hsl(var(--positive))]/10 p-3 group-hover:bg-[hsl(var(--positive))]/20 transition-colors">
+                <Users className="h-6 w-6 text-[hsl(var(--positive))]" />
+              </div>
+              <span className="text-sm font-medium">ลูกค้า</span>
+            </Button>
+
+            <Button
+              variant="outline"
+              className="h-auto flex flex-col items-center gap-2 py-4 hover-scale group"
+              onClick={() => navigate("/employees")}
+            >
+              <div className="rounded-full bg-[hsl(var(--brand-2))]/10 p-3 group-hover:bg-[hsl(var(--brand-2))]/20 transition-colors">
+                <UserSquare2 className="h-6 w-6 text-[hsl(var(--brand-2))]" />
+              </div>
+              <span className="text-sm font-medium">พนักงาน</span>
+            </Button>
+
+            <Button
+              variant="outline"
+              className="h-auto flex flex-col items-center gap-2 py-4 hover-scale group"
+              onClick={() => navigate("/expenses")}
+            >
+              <div className="rounded-full bg-destructive/10 p-3 group-hover:bg-destructive/20 transition-colors">
+                <Wallet className="h-6 w-6 text-destructive" />
+              </div>
+              <span className="text-sm font-medium">ค่าใช้จ่าย</span>
+            </Button>
+
+            <Button
+              variant="outline"
+              className="h-auto flex flex-col items-center gap-2 py-4 hover-scale group"
+              onClick={() => navigate("/baskets")}
+            >
+              <div className="rounded-full bg-[hsl(var(--accent))]/10 p-3 group-hover:bg-[hsl(var(--accent))]/20 transition-colors">
+                <ShoppingBasket className="h-6 w-6 text-[hsl(var(--accent))]" />
+              </div>
+              <span className="text-sm font-medium">ตะกร้า</span>
+            </Button>
+
+            <Button
+              variant="outline"
+              className="h-auto flex flex-col items-center gap-2 py-4 hover-scale group"
+              onClick={() => navigate("/admin/users")}
+            >
+              <div className="rounded-full bg-muted p-3 group-hover:bg-muted/80 transition-colors">
+                <Settings className="h-6 w-6" />
+              </div>
+              <span className="text-sm font-medium">จัดการผู้ใช้</span>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Export Actions */}
+      <Card>
+        <CardHeader>
+          <CardTitle>เครื่องมือส่งออก</CardTitle>
+        </CardHeader>
+        <CardContent className="flex gap-2 flex-wrap">
+          <AttendanceShortcuts />
+          <BillsPDFExport />
+        </CardContent>
+      </Card>
     </div>
   );
 }
