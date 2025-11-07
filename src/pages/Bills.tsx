@@ -122,12 +122,11 @@ export default function Bills() {
   });
 
   const updateStatusMutation = useMutation({
-    mutationFn: async () => {
-      if (!updateStatusData) return;
+    mutationFn: async (payload: { id: string; status: "paid" | "due" }) => {
       const { error } = await (supabase as any)
         .from("bills")
-        .update({ status: updateStatusData.status })
-        .eq("id", updateStatusData.id);
+        .update({ status: payload.status })
+        .eq("id", payload.id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -136,7 +135,8 @@ export default function Bills() {
       refetch();
     },
     onError: (err: any) => {
-      toast({ title: "อัปเดตสถานะไม่สำเร็จ", description: err.message });
+      toast({ title: "อัปเดตสถานะไม่สำเร็จ", description: err.message, variant: "destructive" });
+      setUpdateStatusData(null);
     },
   });
 
@@ -433,7 +433,7 @@ export default function Bills() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
-            <AlertDialogAction onClick={() => updateStatusMutation.mutate()}>
+            <AlertDialogAction onClick={() => { if (updateStatusData) updateStatusMutation.mutate(updateStatusData); }}>
               ยืนยัน
             </AlertDialogAction>
           </AlertDialogFooter>
