@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { FilteredExportButton } from "@/components/common/FilteredExportButton";
 import { LoadingTable } from "@/components/common/LoadingTable";
 
@@ -28,6 +28,7 @@ interface BillRow {
 }
 
 export default function Bills() {
+  const [searchParams] = useSearchParams();
   const [q, setQ] = useState("");
   const [type, setType] = useState<"all" | "buy" | "sell">("all");
   const [status, setStatus] = useState<"all" | "paid" | "due">("all");
@@ -40,6 +41,14 @@ export default function Bills() {
   const [custSuggestions, setCustSuggestions] = useState<string[]>([]);
   const [itemSuggestions, setItemSuggestions] = useState<string[]>([]);
   const [showSug, setShowSug] = useState(false);
+
+  // อ่าน query parameter และตั้งค่า filter เริ่มต้น
+  useEffect(() => {
+    const statusParam = searchParams.get("status");
+    if (statusParam === "paid" || statusParam === "due") {
+      setStatus(statusParam);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (!q || q.trim().length < 1) {

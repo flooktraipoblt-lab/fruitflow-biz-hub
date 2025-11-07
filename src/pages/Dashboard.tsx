@@ -19,7 +19,9 @@ import {
   Wallet, 
   ShoppingBasket,
   TrendingUp,
-  Settings
+  Settings,
+  Clock,
+  CheckCircle2
 } from "lucide-react";
 
 const money = (n: number) => n.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -138,6 +140,28 @@ export default function Dashboard() {
                 <Receipt className="h-6 w-6 text-[hsl(var(--brand-3))]" />
               </div>
               <span className="text-sm font-medium">รายการบิล</span>
+            </Button>
+
+            <Button
+              variant="outline"
+              className="h-auto flex flex-col items-center gap-2 py-4 hover-scale group"
+              onClick={() => navigate("/bills?status=due")}
+            >
+              <div className="rounded-full bg-destructive/10 p-3 group-hover:bg-destructive/20 transition-colors">
+                <Clock className="h-6 w-6 text-destructive" />
+              </div>
+              <span className="text-sm font-medium">ค้างจ่าย</span>
+            </Button>
+
+            <Button
+              variant="outline"
+              className="h-auto flex flex-col items-center gap-2 py-4 hover-scale group"
+              onClick={() => navigate("/bills?status=paid")}
+            >
+              <div className="rounded-full bg-[hsl(var(--positive))]/10 p-3 group-hover:bg-[hsl(var(--positive))]/20 transition-colors">
+                <CheckCircle2 className="h-6 w-6 text-[hsl(var(--positive))]" />
+              </div>
+              <span className="text-sm font-medium">จ่ายแล้ว</span>
             </Button>
 
             <Button
