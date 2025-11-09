@@ -27,7 +27,7 @@ interface ItemRow {
 }
 
 export default function CreateBill() {
-  const [activeTab, setActiveTab] = useState<"standard" | "orange">("standard");
+  const [activeTab, setActiveTab] = useState<"standard" | "orange" | "quotation">("standard");
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [customer, setCustomer] = useState("");
   const [customerSug, setCustomerSug] = useState<string[]>([]);
@@ -66,7 +66,7 @@ export default function CreateBill() {
       try {
         const { data: bill, error: billErr } = await (supabase as any)
           .from("bills")
-          .select("id, bill_date, customer, type, total, status, processing_price_kg, paper_cost, basket_quantity")
+          .select("id, bill_date, customer, type, total, status, processing_price_kg, paper_cost, basket_quantity, phone, customer_note")
           .eq("id", billId)
           .maybeSingle();
         if (billErr) throw billErr;
@@ -80,9 +80,12 @@ export default function CreateBill() {
           // Load orange bill data if exists
           if (bill.processing_price_kg !== null || bill.paper_cost !== null || bill.basket_quantity !== null) {
             setActiveTab("orange");
+            setOrangeType(currentType);
             setOrangeProcessingPriceKg(bill.processing_price_kg ?? "");
             setOrangePaperCost(bill.paper_cost ?? "");
             setOrangeBasketQty(bill.basket_quantity ?? "");
+            setOrangePhone(bill.phone ?? "");
+            setOrangeNote(bill.customer_note ?? "");
           }
         }
         // Load bill items
@@ -495,9 +498,10 @@ export default function CreateBill() {
       <h1 className="text-2xl font-bold">สร้างบิล</h1>
 
       <Tabs value={activeTab} onValueChange={(v: any) => setActiveTab(v)} className="w-full">
-        <TabsList className="grid w-full max-w-md grid-cols-2">
+        <TabsList className="grid w-full max-w-md grid-cols-3">
           <TabsTrigger value="standard">บิลมาตรฐาน</TabsTrigger>
           <TabsTrigger value="orange">บิลส้ม</TabsTrigger>
+          <TabsTrigger value="quotation">ใบเสนอราคา</TabsTrigger>
         </TabsList>
 
         <TabsContent value="standard" className="space-y-6">
@@ -1027,6 +1031,113 @@ export default function CreateBill() {
               }
             }}>
               {billId ? "บันทึกการแก้ไข" : "บันทึกบิลส้ม"}
+            </Button>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="quotation" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>ใบเสนอราคา</CardTitle>
+              <CardDescription>สร้างใบเสนอราคาสำหรับลูกค้า</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-2">
+                <Label>วันที่</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="justify-start">
+                      <CalendarIcon className="mr-2" />
+                      {date ? date.toLocaleDateString('th-TH') : "เลือกวันที่"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={date} onSelect={setDate} initialFocus className={cn("p-3 pointer-events-auto")} />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="grid gap-2">
+                <Label>ชื่อลูกค้า</Label>
+                <Autocomplete
+                  value={customer}
+                  onValueChange={setCustomer}
+                  options={customerNames}
+                  placeholder="ค้นหาหรือกรอกชื่อลูกค้า"
+                  emptyText="ไม่พบลูกค้า"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>รายการสินค้า</CardTitle>
+              <CardDescription>น้ำหนักรวม = จำนวน x น้ำหนัก + เศษ | จำนวนเงิน = น้ำหนักรวม x ราคา</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {totals.rows.map((row, idx) => (
+                <div key={row.id} className="grid gap-2 md:grid-cols-8 items-end rounded-md border p-3">
+                  <div className="grid gap-1 md:col-span-2">
+                    <Label>ชื่อสินค้า</Label>
+                    <Autocomplete
+                      value={row.name}
+                      onValueChange={(value) => setItems((s) => s.map((x) => x.id === row.id ? { ...x, name: value } : x))}
+                      options={itemNames}
+                      placeholder="ค้นหาหรือกรอกชื่อสินค้า"
+                      emptyText="ไม่พบสินค้า"
+                    />
+                  </div>
+                  <div className="grid gap-1">
+                    <Label>จำนวน</Label>
+                    <Input type="number" value={row.qty} onChange={(e) => setItems((s) => s.map((x) => x.id === row.id ? { ...x, qty: e.target.value === "" ? "" : Number(e.target.value) } : x))} placeholder="จำนวน" />
+                  </div>
+                  <div className="grid gap-1">
+                    <Label>น้ำหนัก</Label>
+                    <Input type="number" value={row.weight} onChange={(e) => setItems((s) => s.map((x) => x.id === row.id ? { ...x, weight: e.target.value === "" ? "" : Number(e.target.value) } : x))} placeholder="น้ำหนัก" />
+                  </div>
+                  <div className="grid gap-1">
+                    <Label>เศษ</Label>
+                    <Input type="number" value={row.fraction} onChange={(e) => setItems((s) => s.map((x) => x.id === row.id ? { ...x, fraction: e.target.value === "" ? "" : Number(e.target.value) } : x))} placeholder="เศษ" />
+                  </div>
+                  <div className="grid gap-1">
+                    <Label>น้ำหนักรวม (auto)</Label>
+                    <Input value={row.totalWeight.toFixed(2)} readOnly />
+                  </div>
+                  <div className="grid gap-1">
+                    <Label>ราคา</Label>
+                    <Input type="number" value={row.price} onChange={(e) => setItems((s) => s.map((x) => x.id === row.id ? { ...x, price: e.target.value === "" ? "" : Number(e.target.value) } : x))} placeholder="ราคา" />
+                  </div>
+                  <div className="grid gap-1">
+                    <Label>จำนวนเงิน (auto)</Label>
+                    <Input value={row.amount.toFixed(2)} readOnly />
+                  </div>
+                  <div className="flex justify-end md:col-span-8">
+                    <Button variant="destructive" size="sm" onClick={() => removeItem(row.id)} disabled={items.length === 1}><Trash2 /> ลบ</Button>
+                  </div>
+                </div>
+              ))}
+              <div className="flex items-center justify-between">
+                <Button variant="gradient" onClick={addItem}><Plus /> เพิ่มรายการ</Button>
+                <div className="text-xl font-bold">ยอดรวม: ฿ {totals.grand.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>หมายเหตุ</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Label>หมายเหตุเพิ่มเติม</Label>
+              <Input type="text" placeholder="หมายเหตุสำหรับใบเสนอราคา" />
+            </CardContent>
+          </Card>
+
+          <div className="flex items-center gap-2 justify-end">
+            <Button variant="gradient" onClick={() => {
+              toast({ title: "ฟีเจอร์กำลังพัฒนา", description: "ใบเสนอราคาจะเปิดใช้งานเร็วๆ นี้" });
+            }}>
+              บันทึกใบเสนอราคา
             </Button>
           </div>
         </TabsContent>
