@@ -145,6 +145,15 @@ export default function Bills() {
   });
 
   const handleShareToLine = async (billId: string) => {
+    // Open window immediately to avoid popup blocker
+    const printUrl = `${window.location.origin}/print/${billId}`;
+    const newWindow = window.open('about:blank', '_blank', 'width=800,height=600');
+    
+    if (!newWindow) {
+      toast({ title: "กรุณาอนุญาตให้เปิดหน้าต่างใหม่ในการตั้งค่าเบราว์เซอร์", variant: "destructive" });
+      return;
+    }
+
     try {
       // Fetch bill data
       const { data: bill, error: billError } = await (supabase as any)
@@ -156,95 +165,88 @@ export default function Bills() {
       if (billError) throw billError;
       if (!bill) throw new Error("ไม่พบข้อมูลบิล");
 
-      // Open the print page in a new window
-      const printUrl = `${window.location.origin}/print/${billId}`;
-      const printWindow = window.open(printUrl, '_blank', 'width=800,height=600');
-      
-      if (!printWindow) {
-        toast({ title: "กรุณาอนุญาตให้เปิดหน้าต่างใหม่", variant: "destructive" });
-        return;
-      }
+      // Navigate the already-opened window to the print page
+      newWindow.location.href = printUrl;
 
       // Wait for the print page to load
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise(resolve => setTimeout(resolve, 2500));
 
-      // Try to capture the bill content from the print window
-      if (printWindow.document && printWindow.document.querySelector('.bill-content')) {
-        const billElement = printWindow.document.querySelector('.bill-content') as HTMLElement;
-        
-        const canvas = await html2canvas(billElement, {
-          backgroundColor: '#ffffff',
-          scale: 2,
-          useCORS: true,
-        });
+      // Try to capture the bill content from the window
+      try {
+        if (newWindow.document && newWindow.document.querySelector('.bill-content')) {
+          const billElement = newWindow.document.querySelector('.bill-content') as HTMLElement;
+          
+          const canvas = await html2canvas(billElement, {
+            backgroundColor: '#ffffff',
+            scale: 2,
+            useCORS: true,
+          });
 
-        canvas.toBlob(async (blob) => {
-          if (!blob) return;
+          const blob = await new Promise<Blob>((resolve, reject) => {
+            canvas.toBlob((b) => {
+              if (b) resolve(b);
+              else reject(new Error('Failed to create blob'));
+            }, 'image/png', 1.0);
+          });
 
-          try {
-            // Upload image to Supabase storage
-            const fileName = `bill-${bill.bill_no}-${Date.now()}.png`;
-            const { data: uploadData, error: uploadError } = await supabase.storage
-              .from('profiles')
-              .upload(`bill-shares/${fileName}`, blob, {
-                contentType: 'image/png',
-                cacheControl: '3600',
-              });
+          // Upload image to Supabase storage
+          const fileName = `bill-${bill.bill_no}-${Date.now()}.png`;
+          const { error: uploadError } = await supabase.storage
+            .from('profiles')
+            .upload(`bill-shares/${fileName}`, blob, {
+              contentType: 'image/png',
+              cacheControl: '3600',
+            });
 
-            if (uploadError) {
-              console.error('Upload error:', uploadError);
-              toast({ title: "เกิดข้อผิดพลาดในการอัพโหลดรูป", variant: "destructive" });
-              printWindow.close();
-              return;
-            }
-
-            // Get public URL
-            const { data: { publicUrl } } = supabase.storage
-              .from('profiles')
-              .getPublicUrl(`bill-shares/${fileName}`);
-
-            // Save share data
-            const shareData = {
-              bill_id: bill.id,
-              bill_no: bill.bill_no,
-              customer_name: bill.customer,
-              bill_type: bill.type,
-              total_amount: bill.total,
-              bill_date: bill.bill_date,
-              shared_at: new Date().toISOString(),
-              owner_id: session?.user.id,
-            };
-
-            await supabase.from('bill_shares').insert(shareData);
-
-            // Create share text with image URL
-            const billType = bill.type === 'buy' ? 'บิลซื้อ' : 'บิลขาย';
-            const shareText = `วันที่: ${format(new Date(bill.bill_date), "dd/MM/yyyy")}\nชื่อลูกค้า: ${bill.customer}\nประเภทบิล: ${billType}\n\n${publicUrl}`;
-
-            // Open Line
-            const lineUrl = `https://line.me/R/share?text=${encodeURIComponent(shareText)}`;
-            window.open(lineUrl, '_blank');
-
-            toast({ title: "แชร์ไป Line สำเร็จ" });
-            printWindow.close();
-          } catch (error) {
-            console.error('Error in share process:', error);
-            toast({ title: "เกิดข้อผิดพลาดในการแชร์", variant: "destructive" });
-            printWindow.close();
+          if (uploadError) {
+            console.error('Upload error:', uploadError);
+            throw uploadError;
           }
-        }, 'image/png', 1.0);
-      } else {
+
+          // Get public URL
+          const { data: { publicUrl } } = supabase.storage
+            .from('profiles')
+            .getPublicUrl(`bill-shares/${fileName}`);
+
+          // Save share data
+          const shareData = {
+            bill_id: bill.id,
+            bill_no: bill.bill_no,
+            customer_name: bill.customer,
+            bill_type: bill.type,
+            total_amount: bill.total,
+            bill_date: bill.bill_date,
+            shared_at: new Date().toISOString(),
+            owner_id: session?.user.id,
+          };
+
+          await supabase.from('bill_shares').insert(shareData);
+
+          // Create share text with image URL
+          const billType = bill.type === 'buy' ? 'บิลซื้อ' : 'บิลขาย';
+          const shareText = `วันที่: ${format(new Date(bill.bill_date), "dd/MM/yyyy")}\nชื่อลูกค้า: ${bill.customer}\nประเภทบิล: ${billType}\n\n${publicUrl}`;
+
+          // Navigate to Line share URL
+          const lineUrl = `https://line.me/R/share?text=${encodeURIComponent(shareText)}`;
+          newWindow.location.href = lineUrl;
+
+          toast({ title: "แชร์ไป Line สำเร็จ" });
+        } else {
+          throw new Error('Could not find bill content');
+        }
+      } catch (captureError) {
+        console.error('Error capturing or uploading:', captureError);
         // Fallback: just share text without image
         const billType = bill.type === 'buy' ? 'บิลซื้อ' : 'บิลขาย';
         const shareText = `วันที่: ${format(new Date(bill.bill_date), "dd/MM/yyyy")}\nชื่อลูกค้า: ${bill.customer}\nประเภทบิล: ${billType}\n\nดูบิล: ${printUrl}`;
         const lineUrl = `https://line.me/R/share?text=${encodeURIComponent(shareText)}`;
-        window.open(lineUrl, '_blank');
-        toast({ title: "แชร์ไป Line สำเร็จ" });
-        printWindow.close();
+        newWindow.location.href = lineUrl;
+        toast({ title: "แชร์ไป Line สำเร็จ (ไม่มีรูปภาพ)" });
       }
     } catch (error) {
       console.error('Error sharing to Line:', error);
       toast({ title: "เกิดข้อผิดพลาดในการแชร์", variant: "destructive" });
+      newWindow.close();
     }
   };
 
