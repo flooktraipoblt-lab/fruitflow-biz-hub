@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Calendar as CalendarIcon, Printer, Pencil, Trash2 } from "lucide-react";
+import { Calendar as CalendarIcon, Printer, Pencil, Trash2, Share } from "lucide-react";
 import { useMemo, useState, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
@@ -17,6 +17,9 @@ import { useToast } from "@/hooks/use-toast";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { FilteredExportButton } from "@/components/common/FilteredExportButton";
 import { LoadingTable } from "@/components/common/LoadingTable";
+import { useAuthData } from "@/hooks/useAuthData";
+import { format } from "date-fns";
+import html2canvas from "html2canvas";
 
 interface BillRow {
   id: string;
@@ -37,6 +40,7 @@ export default function Bills() {
   const [updateStatusData, setUpdateStatusData] = useState<{ id: string; status: "paid" | "due" } | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { session } = useAuthData();
 
   const [custSuggestions, setCustSuggestions] = useState<string[]>([]);
   const [itemSuggestions, setItemSuggestions] = useState<string[]>([]);
@@ -139,6 +143,108 @@ export default function Bills() {
       setUpdateStatusData(null);
     },
   });
+
+  const handleShareToLine = async (billId: string) => {
+    try {
+      // Fetch bill data
+      const { data: bill, error: billError } = await (supabase as any)
+        .from("bills")
+        .select("*")
+        .eq("id", billId)
+        .single();
+
+      if (billError) throw billError;
+      if (!bill) throw new Error("ไม่พบข้อมูลบิล");
+
+      // Open the print page in a new window
+      const printUrl = `${window.location.origin}/print/${billId}`;
+      const printWindow = window.open(printUrl, '_blank', 'width=800,height=600');
+      
+      if (!printWindow) {
+        toast({ title: "กรุณาอนุญาตให้เปิดหน้าต่างใหม่", variant: "destructive" });
+        return;
+      }
+
+      // Wait for the print page to load
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Try to capture the bill content from the print window
+      if (printWindow.document && printWindow.document.querySelector('.bill-content')) {
+        const billElement = printWindow.document.querySelector('.bill-content') as HTMLElement;
+        
+        const canvas = await html2canvas(billElement, {
+          backgroundColor: '#ffffff',
+          scale: 2,
+          useCORS: true,
+        });
+
+        canvas.toBlob(async (blob) => {
+          if (!blob) return;
+
+          try {
+            // Upload image to Supabase storage
+            const fileName = `bill-${bill.bill_no}-${Date.now()}.png`;
+            const { data: uploadData, error: uploadError } = await supabase.storage
+              .from('profiles')
+              .upload(`bill-shares/${fileName}`, blob, {
+                contentType: 'image/png',
+                cacheControl: '3600',
+              });
+
+            if (uploadError) {
+              console.error('Upload error:', uploadError);
+              toast({ title: "เกิดข้อผิดพลาดในการอัพโหลดรูป", variant: "destructive" });
+              printWindow.close();
+              return;
+            }
+
+            // Get public URL
+            const { data: { publicUrl } } = supabase.storage
+              .from('profiles')
+              .getPublicUrl(`bill-shares/${fileName}`);
+
+            // Save share data
+            const shareData = {
+              bill_id: bill.id,
+              bill_no: bill.bill_no,
+              customer_name: bill.customer,
+              bill_type: bill.type,
+              total_amount: bill.total,
+              bill_date: bill.bill_date,
+              shared_at: new Date().toISOString(),
+              owner_id: session?.user.id,
+            };
+
+            await supabase.from('bill_shares').insert(shareData);
+
+            // Create share text with image URL
+            const shareText = `บิลเลขที่: ${bill.bill_no}\nวันที่: ${format(new Date(bill.bill_date), "dd/MM/yyyy")}\nลูกค้า: ${bill.customer}\nยอดเงิน: ${parseFloat(bill.total).toLocaleString()} บาท\n${publicUrl}`;
+
+            // Open Line
+            const lineUrl = `https://line.me/R/share?text=${encodeURIComponent(shareText)}`;
+            window.open(lineUrl, '_blank');
+
+            toast({ title: "แชร์ไป Line สำเร็จ" });
+            printWindow.close();
+          } catch (error) {
+            console.error('Error in share process:', error);
+            toast({ title: "เกิดข้อผิดพลาดในการแชร์", variant: "destructive" });
+            printWindow.close();
+          }
+        }, 'image/png', 1.0);
+      } else {
+        // Fallback: just share text without image
+        const shareText = `บิลเลขที่: ${bill.bill_no}\nวันที่: ${format(new Date(bill.bill_date), "dd/MM/yyyy")}\nลูกค้า: ${bill.customer}\nยอดเงิน: ${parseFloat(bill.total).toLocaleString()} บาท\nดูบิล: ${printUrl}`;
+        const lineUrl = `https://line.me/R/share?text=${encodeURIComponent(shareText)}`;
+        window.open(lineUrl, '_blank');
+        toast({ title: "แชร์ไป Line สำเร็จ" });
+        printWindow.close();
+      }
+    } catch (error) {
+      console.error('Error sharing to Line:', error);
+      toast({ title: "เกิดข้อผิดพลาดในการแชร์", variant: "destructive" });
+    }
+  };
 
   const filtered = useMemo(() => rows.filter((r) => {
     if (q && !`${r.customer}`.includes(q)) return false;
@@ -388,6 +494,7 @@ export default function Bills() {
                           window.open(url, '_blank', 'noopener,noreferrer');
                         }} aria-label="พิมพ์"><Printer /></Button>
                         <Button size="sm" variant="outline" className="hover-scale" aria-label="แก้ไข" onClick={() => navigate(`/create?id=${r.id}`)}><Pencil /></Button>
+                        <Button size="sm" variant="outline" className="hover-scale" aria-label="แชร์ไป Line" onClick={() => handleShareToLine(r.id)}><Share /></Button>
                         <Button size="sm" variant="destructive" className="hover-scale" aria-label="ลบ" onClick={() => setDeleteId(r.id)}><Trash2 /></Button>
                       </TableCell>
                     </TableRow>
