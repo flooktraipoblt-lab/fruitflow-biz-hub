@@ -247,7 +247,7 @@ export default function PrintInvoice() {
     }
   }, [loading]);
 
-  const isOrangeBill = invoice?.type === "sell" && (bill?.processing_price_kg || bill?.paper_cost || bill?.basket_quantity);
+  const isOrangeBill = !!(bill?.processing_price_kg || bill?.paper_cost || bill?.basket_quantity);
   const DISPLAY_ROWS = isOrangeBill ? 10 : 6;
   const isCompact = items.length <= DISPLAY_ROWS;
 
