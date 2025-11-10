@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Calendar as CalendarIcon, Printer, Pencil, Trash2, Share } from "lucide-react";
+import { Calendar as CalendarIcon, Printer, Pencil, Trash2, MessageCircle } from "lucide-react";
 import { useMemo, useState, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
@@ -218,7 +218,8 @@ export default function Bills() {
             await supabase.from('bill_shares').insert(shareData);
 
             // Create share text with image URL
-            const shareText = `บิลเลขที่: ${bill.bill_no}\nวันที่: ${format(new Date(bill.bill_date), "dd/MM/yyyy")}\nลูกค้า: ${bill.customer}\nยอดเงิน: ${parseFloat(bill.total).toLocaleString()} บาท\n${publicUrl}`;
+            const billType = bill.type === 'buy' ? 'บิลซื้อ' : 'บิลขาย';
+            const shareText = `วันที่: ${format(new Date(bill.bill_date), "dd/MM/yyyy")}\nชื่อลูกค้า: ${bill.customer}\nประเภทบิล: ${billType}\n\n${publicUrl}`;
 
             // Open Line
             const lineUrl = `https://line.me/R/share?text=${encodeURIComponent(shareText)}`;
@@ -234,7 +235,8 @@ export default function Bills() {
         }, 'image/png', 1.0);
       } else {
         // Fallback: just share text without image
-        const shareText = `บิลเลขที่: ${bill.bill_no}\nวันที่: ${format(new Date(bill.bill_date), "dd/MM/yyyy")}\nลูกค้า: ${bill.customer}\nยอดเงิน: ${parseFloat(bill.total).toLocaleString()} บาท\nดูบิล: ${printUrl}`;
+        const billType = bill.type === 'buy' ? 'บิลซื้อ' : 'บิลขาย';
+        const shareText = `วันที่: ${format(new Date(bill.bill_date), "dd/MM/yyyy")}\nชื่อลูกค้า: ${bill.customer}\nประเภทบิล: ${billType}\n\nดูบิล: ${printUrl}`;
         const lineUrl = `https://line.me/R/share?text=${encodeURIComponent(shareText)}`;
         window.open(lineUrl, '_blank');
         toast({ title: "แชร์ไป Line สำเร็จ" });
@@ -494,7 +496,7 @@ export default function Bills() {
                           window.open(url, '_blank', 'noopener,noreferrer');
                         }} aria-label="พิมพ์"><Printer /></Button>
                         <Button size="sm" variant="outline" className="hover-scale" aria-label="แก้ไข" onClick={() => navigate(`/create?id=${r.id}`)}><Pencil /></Button>
-                        <Button size="sm" variant="outline" className="hover-scale" aria-label="แชร์ไป Line" onClick={() => handleShareToLine(r.id)}><Share /></Button>
+                        <Button size="sm" className="hover-scale bg-[#06C755] text-white hover:bg-[#06C755]/90" aria-label="แชร์ไป Line" onClick={() => handleShareToLine(r.id)}><MessageCircle className="fill-current" /></Button>
                         <Button size="sm" variant="destructive" className="hover-scale" aria-label="ลบ" onClick={() => setDeleteId(r.id)}><Trash2 /></Button>
                       </TableCell>
                     </TableRow>
