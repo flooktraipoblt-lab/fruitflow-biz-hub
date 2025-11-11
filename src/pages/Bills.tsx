@@ -20,6 +20,7 @@ import { LoadingTable } from "@/components/common/LoadingTable";
 import { useAuthData } from "@/hooks/useAuthData";
 import { format } from "date-fns";
 import html2canvas from "html2canvas";
+import { InstallmentDialog } from "@/components/dashboard/InstallmentDialog";
 
 interface BillRow {
   id: string;
@@ -27,17 +28,18 @@ interface BillRow {
   type: "buy" | "sell";
   customer: string;
   total: number;
-  status: "paid" | "due";
+  status: "paid" | "due" | "installment";
 }
 
 export default function Bills() {
   const [searchParams] = useSearchParams();
   const [q, setQ] = useState("");
   const [type, setType] = useState<"all" | "buy" | "sell">("all");
-  const [status, setStatus] = useState<"all" | "paid" | "due">("all");
+  const [status, setStatus] = useState<"all" | "paid" | "due" | "installment">("all");
   const [range, setRange] = useState<{ from?: Date; to?: Date }>({});
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [updateStatusData, setUpdateStatusData] = useState<{ id: string; status: "paid" | "due" } | null>(null);
+  const [installmentBill, setInstallmentBill] = useState<{ id: string; total: number } | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { session } = useAuthData();
@@ -146,6 +148,8 @@ export default function Bills() {
 
   const handleShareToLine = async (billId: string) => {
     try {
+      toast({ title: "กำลังเตรียมรูปภาพ..." });
+
       // Fetch bill data
       const { data: bill, error: billError } = await (supabase as any)
         .from("bills")
@@ -192,69 +196,36 @@ export default function Bills() {
         }, 'image/png', 1.0);
       });
 
-      // Create file from blob
-      const file = new File([blob], `bill-${bill.bill_no}.png`, { type: 'image/png' });
+      // Create download link for the image
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `bill-${bill.bill_no}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
 
-      // Prepare share text
+      // Save share data
+      await supabase.from('bill_shares').insert({
+        bill_id: bill.id,
+        bill_no: bill.bill_no,
+        customer_name: bill.customer,
+        bill_type: bill.type,
+        total_amount: bill.total,
+        bill_date: bill.bill_date,
+        shared_at: new Date().toISOString(),
+        owner_id: session?.user.id,
+      });
+
       const billType = bill.type === 'buy' ? 'บิลซื้อ' : 'บิลขาย';
-      const shareText = `วันที่: ${format(new Date(bill.bill_date), "dd/MM/yyyy")}\nชื่อลูกค้า: ${bill.customer}\nประเภทบิล: ${billType}`;
-
-      // Check if Web Share API is supported and can share files
-      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          text: shareText,
-          files: [file]
-        });
-
-        // Save share data
-        await supabase.from('bill_shares').insert({
-          bill_id: bill.id,
-          bill_no: bill.bill_no,
-          customer_name: bill.customer,
-          bill_type: bill.type,
-          total_amount: bill.total,
-          bill_date: bill.bill_date,
-          shared_at: new Date().toISOString(),
-          owner_id: session?.user.id,
-        });
-
-        toast({ title: "แชร์ไป Line สำเร็จ" });
-      } else {
-        // Fallback: Upload to storage and share link
-        const fileName = `bill-${bill.bill_no}-${Date.now()}.png`;
-        const { error: uploadError } = await supabase.storage
-          .from('profiles')
-          .upload(`bill-shares/${fileName}`, blob, {
-            contentType: 'image/png',
-            cacheControl: '3600',
-          });
-
-        if (uploadError) throw uploadError;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('profiles')
-          .getPublicUrl(`bill-shares/${fileName}`);
-
-        await supabase.from('bill_shares').insert({
-          bill_id: bill.id,
-          bill_no: bill.bill_no,
-          customer_name: bill.customer,
-          bill_type: bill.type,
-          total_amount: bill.total,
-          bill_date: bill.bill_date,
-          shared_at: new Date().toISOString(),
-          owner_id: session?.user.id,
-        });
-
-        const shareUrl = `${shareText}\n\n${publicUrl}`;
-        const lineUrl = `https://line.me/R/share?text=${encodeURIComponent(shareUrl)}`;
-        window.open(lineUrl, '_blank');
-
-        toast({ title: "แชร์ไป Line สำเร็จ" });
-      }
+      toast({ 
+        title: "ดาวน์โหลดสำเร็จ", 
+        description: `รูปบิลถูกดาวน์โหลดแล้ว คุณสามารถแชร์ไป Line ได้เลย\nวันที่: ${format(new Date(bill.bill_date), "dd/MM/yyyy")}\nลูกค้า: ${bill.customer}\nประเภท: ${billType}`
+      });
     } catch (error) {
       console.error('Error sharing to Line:', error);
-      toast({ title: "เกิดข้อผิดพลาดในการแชร์", variant: "destructive" });
+      toast({ title: "เกิดข้อผิดพลาดในการสร้างรูปภาพ", variant: "destructive" });
     }
   };
 
@@ -395,6 +366,7 @@ export default function Bills() {
                 <SelectItem value="all">ทั้งหมด</SelectItem>
                 <SelectItem value="paid">จ่ายแล้ว</SelectItem>
                 <SelectItem value="due">ค้างจ่าย</SelectItem>
+                <SelectItem value="installment">แบ่งชำระ</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -489,14 +461,26 @@ export default function Bills() {
                       <TableCell>
                         <Select
                           value={r.status}
-                          onValueChange={(v: any) => setUpdateStatusData({ id: r.id, status: v })}
+                          onValueChange={(v: any) => {
+                            if (v === "installment") {
+                              setInstallmentBill({ id: r.id, total: r.total });
+                            } else {
+                              setUpdateStatusData({ id: r.id, status: v });
+                            }
+                          }}
                         >
-                          <SelectTrigger className={cn("w-[140px] border", r.status === "due" ? "text-[hsl(var(--destructive))] border-[hsl(var(--destructive))]" : "text-[hsl(var(--positive))] border-[hsl(var(--positive))]")}>
+                          <SelectTrigger className={cn(
+                            "w-[140px] border", 
+                            r.status === "due" && "text-[hsl(var(--destructive))] border-[hsl(var(--destructive))]",
+                            r.status === "paid" && "text-[hsl(var(--positive))] border-[hsl(var(--positive))]",
+                            r.status === "installment" && "text-yellow-600 border-yellow-600"
+                          )}>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent className="z-50 bg-background">
                             <SelectItem value="paid">ชำระแล้ว</SelectItem>
                             <SelectItem value="due">ค้างจ่าย</SelectItem>
+                            <SelectItem value="installment">แบ่งชำระ</SelectItem>
                           </SelectContent>
                         </Select>
                       </TableCell>
@@ -558,6 +542,16 @@ export default function Bills() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {installmentBill && (
+        <InstallmentDialog
+          open={!!installmentBill}
+          onOpenChange={(open) => !open && setInstallmentBill(null)}
+          billId={installmentBill.id}
+          billTotal={installmentBill.total}
+          onSuccess={refetch}
+        />
+      )}
     </div>
   );
 }

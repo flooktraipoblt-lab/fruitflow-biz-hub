@@ -107,6 +107,48 @@ export type Database = {
           },
         ]
       }
+      bill_installments: {
+        Row: {
+          amount: number
+          bill_id: string
+          created_at: string
+          due_date: string
+          id: string
+          installment_number: number
+          owner_id: string
+          paid_amount: number
+          paid_date: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          bill_id: string
+          created_at?: string
+          due_date: string
+          id?: string
+          installment_number: number
+          owner_id: string
+          paid_amount?: number
+          paid_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          bill_id?: string
+          created_at?: string
+          due_date?: string
+          id?: string
+          installment_number?: number
+          owner_id?: string
+          paid_amount?: number
+          paid_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       bill_items: {
         Row: {
           bill_id: string
