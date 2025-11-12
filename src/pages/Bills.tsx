@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Calendar as CalendarIcon, Printer, Pencil, Trash2, MessageCircle } from "lucide-react";
+import { Calendar as CalendarIcon, Printer, Pencil, Trash2, MessageCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { useMemo, useState, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
@@ -40,6 +40,7 @@ export default function Bills() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [updateStatusData, setUpdateStatusData] = useState<{ id: string; status: "paid" | "due" } | null>(null);
   const [installmentBill, setInstallmentBill] = useState<{ id: string; total: number } | null>(null);
+  const [expandedInstallments, setExpandedInstallments] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
   const navigate = useNavigate();
   const { session } = useAuthData();
@@ -505,6 +506,7 @@ export default function Bills() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-10"></TableHead>
                   <TableHead>วันที่</TableHead>
                   <TableHead>ประเภท</TableHead>
                   <TableHead>ชื่อลูกค้า</TableHead>
@@ -517,6 +519,7 @@ export default function Bills() {
                 {isLoading ? (
                   Array.from({ length: 5 }).map((_, i) => (
                     <TableRow key={i}>
+                      <TableCell><div className="h-4 w-10 bg-muted animate-pulse rounded" /></TableCell>
                       <TableCell><div className="h-4 w-24 bg-muted animate-pulse rounded" /></TableCell>
                       <TableCell><div className="h-4 w-20 bg-muted animate-pulse rounded" /></TableCell>
                       <TableCell><div className="h-4 w-32 bg-muted animate-pulse rounded" /></TableCell>
@@ -527,7 +530,7 @@ export default function Bills() {
                   ))
                 ) : filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6}>ไม่พบข้อมูล</TableCell>
+                    <TableCell colSpan={7}>ไม่พบข้อมูล</TableCell>
                   </TableRow>
                 ) : (
                   filtered.map((r) => {
@@ -536,9 +539,23 @@ export default function Bills() {
                     const paidAmount = billInstallments.reduce((sum, inst) => sum + Number(inst.paid_amount ?? 0), 0);
                     const remainingAmount = totalAmount - paidAmount;
                     
+                    const isExpanded = expandedInstallments[r.id] ?? false;
+                    
                     return (
                       <>
                         <TableRow key={r.id}>
+                          <TableCell>
+                            {r.status === "installment" && billInstallments.length > 0 && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0"
+                                onClick={() => setExpandedInstallments(prev => ({ ...prev, [r.id]: !isExpanded }))}
+                              >
+                                {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                              </Button>
+                            )}
+                          </TableCell>
                           <TableCell>{r.date.toLocaleDateString()}</TableCell>
                           <TableCell>
                             <span className={cn(
@@ -588,9 +605,9 @@ export default function Bills() {
                             <Button size="sm" variant="destructive" className="hover-scale" aria-label="ลบ" onClick={() => setDeleteId(r.id)}><Trash2 /></Button>
                           </TableCell>
                         </TableRow>
-                        {r.status === "installment" && billInstallments.length > 0 && (
+                        {r.status === "installment" && billInstallments.length > 0 && isExpanded && (
                           <TableRow key={`${r.id}-installment-info`} className="bg-muted/30">
-                            <TableCell colSpan={6}>
+                            <TableCell colSpan={7}>
                               <div className="flex items-center justify-end gap-6 py-2 px-4 text-sm">
                                 <div className="flex items-center gap-2">
                                   <span className="text-muted-foreground">ยอดเงินทั้งหมด:</span>
