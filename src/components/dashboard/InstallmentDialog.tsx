@@ -115,13 +115,13 @@ export function InstallmentDialog({ open, onOpenChange, billId, billTotal, onSuc
   };
 
   const handleSave = async () => {
-    // ตรวจสอบว่ายอดรวมของงวดตรงกับยอดบิลหรือไม่
-    const totalInstallments = installments.reduce((sum, inst) => sum + Number(inst.amount), 0);
-    if (Math.abs(totalInstallments - billTotal) > 0.01) {
-      toast({ 
-        title: "ยอดไม่ตรง", 
-        description: `ยอดรวมของงวด (${totalInstallments}) ต้องเท่ากับยอดบิล (${billTotal})`,
-        variant: "destructive" 
+    // ตรวจสอบไม่ให้ยอดชำระรวมเกินยอดบิล
+    const totalPaid = installments.reduce((sum, inst) => sum + Number(inst.paid_amount), 0);
+    if (totalPaid - billTotal > 0.01) {
+      toast({
+        title: "ยอดชำระเกิน",
+        description: `ยอดชำระรวม (${totalPaid}) ต้องไม่เกินยอดบิล (${billTotal})`,
+        variant: "destructive",
       });
       return;
     }
