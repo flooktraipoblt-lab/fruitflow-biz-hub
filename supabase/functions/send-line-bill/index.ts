@@ -15,71 +15,129 @@ serve(async (req) => {
   try {
     const lineAccessToken = Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN');
     if (!lineAccessToken) {
-      throw new Error('LINE_CHANNEL_ACCESS_TOKEN is not configured');
+      console.error('LINE_CHANNEL_ACCESS_TOKEN is not configured');
+      throw new Error('LINE Channel Access Token is not configured');
     }
 
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('Supabase credentials not configured');
+      throw new Error('Supabase configuration is missing');
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Parse request body
     const { lineUserId, imageBase64, billInfo } = await req.json();
 
-    // Validate required fields
-    if (!lineUserId || typeof lineUserId !== 'string' || lineUserId.trim().length === 0) {
-      console.error('Invalid lineUserId:', lineUserId);
+    // Validate LINE User ID
+    if (!lineUserId || typeof lineUserId !== 'string') {
+      console.error('Invalid LINE User ID:', lineUserId);
       return new Response(
-        JSON.stringify({ error: 'Invalid or missing LINE User ID' }), 
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    if (!imageBase64 || typeof imageBase64 !== 'string') {
-      console.error('Invalid imageBase64');
-      return new Response(
-        JSON.stringify({ error: 'Invalid or missing image data' }), 
+        JSON.stringify({ error: 'LINE User ID is required and must be a valid string' }), 
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     const trimmedUserId = lineUserId.trim();
-    console.log('Sending bill to LINE user:', trimmedUserId);
-
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    // Validate it's not empty after trim
+    if (trimmedUserId.length === 0) {
+      console.error('LINE User ID is empty after trim');
+      return new Response(
+        JSON.stringify({ error: 'LINE User ID cannot be empty' }), 
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
-    // Convert base64 to blob for uploading to Supabase Storage
-    const base64Data = imageBase64.split(',')[1]; // Remove data:image/png;base64, prefix
+    // Validate LINE User ID format (should start with U and be 33 characters)
+    if (!trimmedUserId.startsWith('U') || trimmedUserId.length !== 33) {
+      console.error('Invalid LINE User ID format:', trimmedUserId);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid LINE User ID format. It should start with "U" and be 33 characters long.',
+          receivedLength: trimmedUserId.length,
+          receivedPrefix: trimmedUserId.substring(0, 1)
+        }), 
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate image data
+    if (!imageBase64 || typeof imageBase64 !== 'string') {
+      console.error('Invalid image data');
+      return new Response(
+        JSON.stringify({ error: 'Image data is required' }), 
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('Processing LINE message for user:', trimmedUserId);
+    console.log('Bill info:', billInfo);
+
+    // Extract base64 data (remove data:image/png;base64, prefix if present)
+    let base64Data = imageBase64;
+    if (imageBase64.includes(',')) {
+      base64Data = imageBase64.split(',')[1];
+    }
+
+    // Convert base64 to binary
     const binaryData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
     
+    console.log('Image size:', binaryData.length, 'bytes');
+
+    // Generate unique filename
+    const timestamp = Date.now();
+    const billNo = billInfo?.billNo || 'bill';
+    const fileName = `line-bills/${timestamp}-${billNo}.png`;
+
+    console.log('Uploading image to Supabase Storage:', fileName);
+
     // Upload image to Supabase Storage
-    const fileName = `line-bills/${Date.now()}-${billInfo?.billNo || 'bill'}.png`;
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('diary-images')
       .upload(fileName, binaryData, {
         contentType: 'image/png',
-        upsert: false
+        upsert: false,
+        cacheControl: '3600'
       });
 
     if (uploadError) {
-      console.error('Upload error:', uploadError);
-      throw new Error(`Failed to upload image: ${uploadError.message}`);
+      console.error('Failed to upload image to storage:', uploadError);
+      throw new Error(`Storage upload failed: ${uploadError.message}`);
     }
+
+    console.log('Image uploaded successfully:', uploadData);
 
     // Get public URL
     const { data: { publicUrl } } = supabase.storage
       .from('diary-images')
       .getPublicUrl(fileName);
 
-    console.log('Image uploaded to:', publicUrl);
+    if (!publicUrl) {
+      console.error('Failed to get public URL');
+      throw new Error('Failed to generate public URL for image');
+    }
 
-    // Prepare LINE message payload
+    console.log('Public URL generated:', publicUrl);
+
+    // Prepare text message
+    const textMessage = [
+      `📄 ${billInfo?.type === 'buy' ? 'บิลซื้อ' : 'บิลขาย'} ${billInfo?.billNo || ''}`,
+      `👤 ${billInfo?.customer || ''}`,
+      `💰 ${billInfo?.total ? Number(billInfo.total).toLocaleString('th-TH') : ''} บาท`,
+      `📅 ${billInfo?.date || ''}`
+    ].filter(line => line.split(' ').length > 1).join('\n');
+
+    // Prepare LINE API payload
     const linePayload = {
       to: trimmedUserId,
       messages: [
         {
           type: 'text',
-          text: `📄 ${billInfo?.type === 'buy' ? 'บิลซื้อ' : 'บิลขาย'} ${billInfo?.billNo || ''}\n` +
-                `👤 ${billInfo?.customer || ''}\n` +
-                `💰 ${billInfo?.total?.toLocaleString() || ''} บาท\n` +
-                `📅 ${billInfo?.date || ''}`
+          text: textMessage
         },
         {
           type: 'image',
@@ -89,13 +147,11 @@ serve(async (req) => {
       ]
     };
 
-    console.log('Sending to LINE API with payload:', JSON.stringify({
-      to: trimmedUserId,
-      messageCount: linePayload.messages.length
-    }));
+    console.log('Sending to LINE API...');
+    console.log('Payload:', JSON.stringify({ to: trimmedUserId, messageCount: linePayload.messages.length }));
 
-    // Send image message via LINE Messaging API
-    const response = await fetch('https://api.line.me/v2/bot/message/push', {
+    // Send message via LINE Messaging API
+    const lineResponse = await fetch('https://api.line.me/v2/bot/message/push', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -104,49 +160,54 @@ serve(async (req) => {
       body: JSON.stringify(linePayload)
     });
 
-    const responseStatus = response.status;
-    console.log('LINE API Response Status:', responseStatus);
+    console.log('LINE API Response Status:', lineResponse.status);
 
-    if (!response.ok) {
-      const errorData = await response.text();
-      console.error('LINE API Error Response:', errorData);
-      console.error('LINE API Status:', responseStatus);
+    // Check response
+    if (!lineResponse.ok) {
+      const errorText = await lineResponse.text();
+      console.error('LINE API Error Response:', errorText);
       
-      // Try to parse error details
+      let errorMessage = 'Failed to send message to LINE';
       try {
-        const errorJson = JSON.parse(errorData);
-        throw new Error(`LINE API Error (${responseStatus}): ${errorJson.message || errorData}`);
-      } catch (parseError) {
-        throw new Error(`LINE API Error (${responseStatus}): ${errorData}`);
+        const errorJson = JSON.parse(errorText);
+        errorMessage = errorJson.message || errorMessage;
+        console.error('LINE API Error Details:', errorJson);
+      } catch (e) {
+        console.error('Could not parse error response');
       }
+
+      throw new Error(`LINE API Error (${lineResponse.status}): ${errorMessage}`);
     }
 
-    const responseData = await response.json();
-    console.log('LINE API Success Response:', responseData);
-    console.log('Bill sent successfully to LINE user:', trimmedUserId);
+    const responseData = await lineResponse.json();
+    console.log('LINE API Success:', responseData);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         message: 'Bill sent to LINE successfully',
-        lineUserId: trimmedUserId 
+        sentTo: trimmedUserId,
+        imageUrl: publicUrl
       }), 
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { 
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
     );
+
   } catch (error) {
     console.error('Error in send-line-bill function:', error);
-    console.error('Error details:', {
-      message: error.message,
-      stack: error.stack,
-      name: error.name
-    });
+    console.error('Error stack:', error.stack);
     
     return new Response(
       JSON.stringify({ 
-        error: error.message,
-        details: 'Check edge function logs for more information'
+        error: error.message || 'Unknown error occurred',
+        details: 'Please check the edge function logs for more information'
       }), 
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
     );
   }
 });
