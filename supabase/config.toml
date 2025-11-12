@@ -2,3 +2,6 @@ project_id = "buytjijgcqhadktjwuhn"
 
 [functions.send-line-bill]
 verify_jwt = true
+
+[functions.line-webhook]
+verify_jwt = false

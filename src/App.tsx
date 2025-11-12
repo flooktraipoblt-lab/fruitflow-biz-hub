@@ -25,6 +25,7 @@ import Expenses from "./pages/Expenses";
 import Employees from "./pages/Employees";
 import EmployeeProfile from "./pages/EmployeeProfile";
 import AuditLogs from "./pages/AuditLogs";
+import LineUsers from "./pages/LineUsers";
 import Install from "./pages/Install";
 import { ErrorBoundary } from "./components/common/ErrorBoundary";
 
@@ -53,10 +54,11 @@ const App = () => (
                 <Route path="/admin" element={<AdminUsers />} />
                 <Route path="/submit" element={<SubmitMailbox />} />
                 <Route path="/mailbox" element={<MailboxPage />} />
-                <Route path="/expenses" element={<Expenses />} />
+              <Route path="/expenses" element={<Expenses />} />
                 <Route path="/employees" element={<Employees />} />
                 <Route path="/employee-profile/:id" element={<EmployeeProfile />} />
                 <Route path="/audit-logs" element={<AuditLogs />} />
+                <Route path="/line-users" element={<LineUsers />} />
               </Route>
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="/print/:invoiceId" element={<PrintInvoice />} />

@@ -2,7 +2,7 @@ import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Helmet } from "react-helmet-async";
-import { BarChart3, FilePlus2, ClipboardList, Users, ReceiptText, CreditCard, UserCheck } from "lucide-react";
+import { BarChart3, FilePlus2, ClipboardList, Users, ReceiptText, CreditCard, UserCheck, MessageCircle } from "lucide-react";
 import UserMenu from "@/components/auth/UserMenu";
 import MailboxAlertListener from "@/components/common/MailboxAlertListener";
 import MobileNav from "@/components/common/MobileNav";
@@ -16,6 +16,7 @@ const tabs = [
   { to: "/customers", label: "ลูกค้า", Icon: Users },
   { to: "/expenses", label: "ค่าใช้จ่าย", Icon: CreditCard },
   { to: "/employees", label: "พนักงาน", Icon: UserCheck },
+  { to: "/line-users", label: "LINE Users", Icon: MessageCircle },
 ];
 
 export default function MainLayout() {
