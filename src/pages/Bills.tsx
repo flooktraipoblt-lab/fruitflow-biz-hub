@@ -201,27 +201,40 @@ export default function Bills() {
         .eq("name", bill.customer)
         .single();
 
-      // Create hidden iframe to load the print page
+      // Determine if this is an orange bill (portrait mode)
+      const isOrangeBill = !!(bill?.processing_price_kg || bill?.paper_cost || bill?.basket_quantity);
+
+      // Create hidden iframe to load the print page with correct dimensions
       const iframe = document.createElement('iframe');
       iframe.style.position = 'fixed';
       iframe.style.top = '-9999px';
       iframe.style.left = '-9999px';
-      iframe.style.width = '800px';
-      iframe.style.height = '600px';
+      // Set iframe size to match A5 page dimensions (in pixels at 96 DPI)
+      // A5 landscape: 210mm x 148mm = 794px x 559px
+      // A5 portrait: 148mm x 210mm = 559px x 794px
+      if (isOrangeBill) {
+        iframe.style.width = '559px';
+        iframe.style.height = '794px';
+      } else {
+        iframe.style.width = '794px';
+        iframe.style.height = '559px';
+      }
+      iframe.style.border = 'none';
       document.body.appendChild(iframe);
 
       const printUrl = `${window.location.origin}/print/${billId}`;
       iframe.src = printUrl;
 
-      // Wait for iframe to load
+      // Wait for iframe to load and render completely
       await new Promise((resolve, reject) => {
         const timeout = setTimeout(() => {
           reject(new Error('Timeout loading bill'));
-        }, 10000);
+        }, 15000);
 
         iframe.onload = () => {
           clearTimeout(timeout);
-          setTimeout(resolve, 2000);
+          // Wait longer to ensure all content is rendered
+          setTimeout(resolve, 3000);
         };
 
         iframe.onerror = () => {
@@ -243,12 +256,16 @@ export default function Bills() {
         throw new Error('ไม่พบเนื้อหาบิล');
       }
 
+      // Ensure all styles are applied before capturing
       const canvas = await html2canvas(billElement, {
         backgroundColor: '#ffffff',
-        scale: 2,
+        scale: 3, // Higher quality for LINE
         useCORS: true,
         allowTaint: true,
-        foreignObjectRendering: true,
+        foreignObjectRendering: false,
+        logging: false,
+        windowWidth: isOrangeBill ? 559 : 794,
+        windowHeight: isOrangeBill ? 794 : 559,
       });
 
       // Remove iframe
