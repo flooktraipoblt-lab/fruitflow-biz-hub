@@ -225,16 +225,16 @@ export default function Bills() {
       const printUrl = `${window.location.origin}/print/${billId}`;
       iframe.src = printUrl;
 
-      // Wait for iframe to load and render completely
+      // Wait for iframe to fully load and all resources to render
       await new Promise((resolve, reject) => {
         const timeout = setTimeout(() => {
           reject(new Error('Timeout loading bill'));
-        }, 15000);
+        }, 20000);
 
         iframe.onload = () => {
           clearTimeout(timeout);
-          // Wait longer to ensure all content is rendered
-          setTimeout(resolve, 3000);
+          // Wait for all content, styles, and images to fully render
+          setTimeout(resolve, 5000);
         };
 
         iframe.onerror = () => {
@@ -256,16 +256,11 @@ export default function Bills() {
         throw new Error('ไม่พบเนื้อหาบิล');
       }
 
-      // Ensure all styles are applied before capturing
+      // Use same capture settings as PrintInvoice.tsx for consistency
       const canvas = await html2canvas(billElement, {
         backgroundColor: '#ffffff',
-        scale: 3, // Higher quality for LINE
+        scale: 2,
         useCORS: true,
-        allowTaint: true,
-        foreignObjectRendering: false,
-        logging: false,
-        windowWidth: isOrangeBill ? 559 : 794,
-        windowHeight: isOrangeBill ? 794 : 559,
       });
 
       // Remove iframe
