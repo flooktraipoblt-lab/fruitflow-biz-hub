@@ -697,6 +697,62 @@ export type Database = {
         }
         Relationships: []
       }
+      line_users: {
+        Row: {
+          created_at: string
+          customer_id: string | null
+          display_name: string | null
+          followed_at: string
+          id: string
+          is_following: boolean
+          line_user_id: string
+          linked_at: string | null
+          owner_id: string
+          picture_url: string | null
+          status_message: string | null
+          unfollowed_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id?: string | null
+          display_name?: string | null
+          followed_at?: string
+          id?: string
+          is_following?: boolean
+          line_user_id: string
+          linked_at?: string | null
+          owner_id: string
+          picture_url?: string | null
+          status_message?: string | null
+          unfollowed_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string | null
+          display_name?: string | null
+          followed_at?: string
+          id?: string
+          is_following?: boolean
+          line_user_id?: string
+          linked_at?: string | null
+          owner_id?: string
+          picture_url?: string | null
+          status_message?: string | null
+          unfollowed_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "line_users_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mailbox_messages: {
         Row: {
           created_at: string
