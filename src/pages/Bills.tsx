@@ -94,11 +94,9 @@ export default function Bills() {
     },
   });
 
-  const { data: installments = [] } = useQuery({
-    queryKey: ["installments", status],
+  const { data: allInstallments = [] } = useQuery({
+    queryKey: ["all-installments"],
     queryFn: async () => {
-      if (status !== "installment") return [];
-      
       const { data, error } = await (supabase as any)
         .from("bill_installments")
         .select("*")
@@ -107,8 +105,23 @@ export default function Bills() {
       if (error) throw error;
       return data ?? [];
     },
-    enabled: status === "installment",
   });
+
+  const installmentsByBillId = useMemo(() => {
+    const grouped: Record<string, any[]> = {};
+    allInstallments.forEach((inst: any) => {
+      if (!grouped[inst.bill_id]) {
+        grouped[inst.bill_id] = [];
+      }
+      grouped[inst.bill_id].push(inst);
+    });
+    return grouped;
+  }, [allInstallments]);
+
+  const installments = useMemo(() => {
+    if (status !== "installment") return [];
+    return allInstallments;
+  }, [status, allInstallments]);
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -517,58 +530,87 @@ export default function Bills() {
                     <TableCell colSpan={6}>ไม่พบข้อมูล</TableCell>
                   </TableRow>
                 ) : (
-                  filtered.map((r) => (
-                    <TableRow key={r.id}>
-                      <TableCell>{r.date.toLocaleDateString()}</TableCell>
-                      <TableCell>
-                        <span className={cn(
-                          "rounded-full px-3 py-1 text-xs font-medium border",
-                          r.type === "buy"
-                            ? "text-[hsl(var(--brand-3))] border-[hsl(var(--brand-3))]"
-                            : "text-[hsl(var(--positive))] border-[hsl(var(--positive))]"
-                        )}>
-                          {r.type === "buy" ? "บิลซื้อ" : "บิลขาย"}
-                        </span>
-                      </TableCell>
-                      <TableCell>{r.customer}</TableCell>
-                      <TableCell className="text-right">฿ {r.total.toLocaleString()}</TableCell>
-                      <TableCell>
-                        <Select
-                          value={r.status}
-                          onValueChange={(v: any) => {
-                            if (v === "installment") {
-                              setInstallmentBill({ id: r.id, total: r.total });
-                            } else {
-                              setUpdateStatusData({ id: r.id, status: v });
-                            }
-                          }}
-                        >
-                          <SelectTrigger className={cn(
-                            "w-[140px] border", 
-                            r.status === "due" && "text-[hsl(var(--destructive))] border-[hsl(var(--destructive))]",
-                            r.status === "paid" && "text-[hsl(var(--positive))] border-[hsl(var(--positive))]",
-                            r.status === "installment" && "text-yellow-600 border-yellow-600"
-                          )}>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent className="z-50 bg-background">
-                            <SelectItem value="paid">ชำระแล้ว</SelectItem>
-                            <SelectItem value="due">ค้างจ่าย</SelectItem>
-                            <SelectItem value="installment">แบ่งชำระ</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-                      <TableCell className="text-right space-x-2">
-                        <Button size="sm" variant="outline" className="hover-scale" onClick={() => {
-                          const url = `${window.location.origin}/print/${r.id}`;
-                          window.open(url, '_blank', 'noopener,noreferrer');
-                        }} aria-label="พิมพ์"><Printer /></Button>
-                        <Button size="sm" variant="outline" className="hover-scale" aria-label="แก้ไข" onClick={() => navigate(`/create?id=${r.id}`)}><Pencil /></Button>
-                        <Button size="sm" className="hover-scale bg-[#06C755] text-white hover:bg-[#06C755]/90" aria-label="แชร์ไป Line" onClick={() => handleShareToLine(r.id)}><MessageCircle className="fill-current" /></Button>
-                        <Button size="sm" variant="destructive" className="hover-scale" aria-label="ลบ" onClick={() => setDeleteId(r.id)}><Trash2 /></Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                  filtered.map((r) => {
+                    const billInstallments = installmentsByBillId[r.id] || [];
+                    const totalAmount = billInstallments.reduce((sum, inst) => sum + Number(inst.amount ?? 0), 0);
+                    const paidAmount = billInstallments.reduce((sum, inst) => sum + Number(inst.paid_amount ?? 0), 0);
+                    const remainingAmount = totalAmount - paidAmount;
+                    
+                    return (
+                      <>
+                        <TableRow key={r.id}>
+                          <TableCell>{r.date.toLocaleDateString()}</TableCell>
+                          <TableCell>
+                            <span className={cn(
+                              "rounded-full px-3 py-1 text-xs font-medium border",
+                              r.type === "buy"
+                                ? "text-[hsl(var(--brand-3))] border-[hsl(var(--brand-3))]"
+                                : "text-[hsl(var(--positive))] border-[hsl(var(--positive))]"
+                            )}>
+                              {r.type === "buy" ? "บิลซื้อ" : "บิลขาย"}
+                            </span>
+                          </TableCell>
+                          <TableCell>{r.customer}</TableCell>
+                          <TableCell className="text-right">฿ {r.total.toLocaleString()}</TableCell>
+                          <TableCell>
+                            <Select
+                              value={r.status}
+                              onValueChange={(v: any) => {
+                                if (v === "installment") {
+                                  setInstallmentBill({ id: r.id, total: r.total });
+                                } else {
+                                  setUpdateStatusData({ id: r.id, status: v });
+                                }
+                              }}
+                            >
+                              <SelectTrigger className={cn(
+                                "w-[140px] border", 
+                                r.status === "due" && "text-[hsl(var(--destructive))] border-[hsl(var(--destructive))]",
+                                r.status === "paid" && "text-[hsl(var(--positive))] border-[hsl(var(--positive))]",
+                                r.status === "installment" && "text-yellow-600 border-yellow-600"
+                              )}>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent className="z-50 bg-background">
+                                <SelectItem value="paid">ชำระแล้ว</SelectItem>
+                                <SelectItem value="due">ค้างจ่าย</SelectItem>
+                                <SelectItem value="installment">แบ่งชำระ</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                          <TableCell className="text-right space-x-2">
+                            <Button size="sm" variant="outline" className="hover-scale" onClick={() => {
+                              const url = `${window.location.origin}/print/${r.id}`;
+                              window.open(url, '_blank', 'noopener,noreferrer');
+                            }} aria-label="พิมพ์"><Printer /></Button>
+                            <Button size="sm" variant="outline" className="hover-scale" aria-label="แก้ไข" onClick={() => navigate(`/create?id=${r.id}`)}><Pencil /></Button>
+                            <Button size="sm" className="hover-scale bg-[#06C755] text-white hover:bg-[#06C755]/90" aria-label="แชร์ไป Line" onClick={() => handleShareToLine(r.id)}><MessageCircle className="fill-current" /></Button>
+                            <Button size="sm" variant="destructive" className="hover-scale" aria-label="ลบ" onClick={() => setDeleteId(r.id)}><Trash2 /></Button>
+                          </TableCell>
+                        </TableRow>
+                        {r.status === "installment" && billInstallments.length > 0 && (
+                          <TableRow key={`${r.id}-installment-info`} className="bg-muted/30">
+                            <TableCell colSpan={6}>
+                              <div className="flex items-center justify-end gap-6 py-2 px-4 text-sm">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-muted-foreground">ยอดเงินทั้งหมด:</span>
+                                  <span className="font-semibold">฿{totalAmount.toLocaleString()}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-muted-foreground">ยอดที่ชำระแล้ว:</span>
+                                  <span className="font-semibold text-[hsl(var(--positive))]">฿{paidAmount.toLocaleString()}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-muted-foreground">ยอดที่คงเหลือ:</span>
+                                  <span className="font-semibold text-yellow-600">฿{remainingAmount.toLocaleString()}</span>
+                                </div>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </>
+                     );
+                  })
                 )}
               </TableBody>
             </Table>
