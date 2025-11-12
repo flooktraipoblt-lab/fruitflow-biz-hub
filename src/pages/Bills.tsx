@@ -190,22 +190,46 @@ export default function Bills() {
       if (billError) throw billError;
       if (!bill) throw new Error("ไม่พบข้อมูลบิล");
 
-      // Open print page in new window to capture
+      // Create hidden iframe to load the print page
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'fixed';
+      iframe.style.top = '-9999px';
+      iframe.style.left = '-9999px';
+      iframe.style.width = '800px';
+      iframe.style.height = '600px';
+      document.body.appendChild(iframe);
+
       const printUrl = `${window.location.origin}/print/${billId}`;
-      const captureWindow = window.open(printUrl, '_blank', 'width=800,height=600');
-      
-      if (!captureWindow) {
-        toast({ title: "กรุณาอนุญาตให้เปิดหน้าต่างใหม่ในการตั้งค่าเบราว์เซอร์", variant: "destructive" });
-        return;
+      iframe.src = printUrl;
+
+      // Wait for iframe to load
+      await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error('Timeout loading bill'));
+        }, 10000);
+
+        iframe.onload = () => {
+          clearTimeout(timeout);
+          // Wait a bit more for content to render
+          setTimeout(resolve, 2000);
+        };
+
+        iframe.onerror = () => {
+          clearTimeout(timeout);
+          reject(new Error('Failed to load bill'));
+        };
+      });
+
+      // Capture bill as image from iframe
+      const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+      if (!iframeDoc) {
+        document.body.removeChild(iframe);
+        throw new Error('ไม่สามารถเข้าถึงเอกสารบิลได้');
       }
 
-      // Wait for the print page to load
-      await new Promise(resolve => setTimeout(resolve, 2500));
-
-      // Capture bill as image
-      const billElement = captureWindow.document.querySelector('.bill-content') as HTMLElement;
+      const billElement = iframeDoc.querySelector('.bill-content') as HTMLElement;
       if (!billElement) {
-        captureWindow.close();
+        document.body.removeChild(iframe);
         throw new Error('ไม่พบเนื้อหาบิล');
       }
 
@@ -213,10 +237,12 @@ export default function Bills() {
         backgroundColor: '#ffffff',
         scale: 2,
         useCORS: true,
+        allowTaint: true,
+        foreignObjectRendering: true,
       });
 
-      // Close the capture window
-      captureWindow.close();
+      // Remove iframe
+      document.body.removeChild(iframe);
 
       // Convert canvas to blob
       const blob = await new Promise<Blob>((resolve, reject) => {
