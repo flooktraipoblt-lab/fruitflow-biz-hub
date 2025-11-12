@@ -97,34 +97,34 @@ export default function Bills() {
     },
   });
 
-  const { data: allInstallments = [] } = useQuery({
-    queryKey: ["all-installments"],
+  const { data: allPayments = [] } = useQuery({
+    queryKey: ["all-payments"],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
-        .from("bill_installments")
+        .from("bill_payments")
         .select("*")
-        .order("due_date", { ascending: true });
+        .order("payment_date", { ascending: true });
       
       if (error) throw error;
       return data ?? [];
     },
   });
 
-  const installmentsByBillId = useMemo(() => {
+  const paymentsByBillId = useMemo(() => {
     const grouped: Record<string, any[]> = {};
-    allInstallments.forEach((inst: any) => {
-      if (!grouped[inst.bill_id]) {
-        grouped[inst.bill_id] = [];
+    allPayments.forEach((payment: any) => {
+      if (!grouped[payment.bill_id]) {
+        grouped[payment.bill_id] = [];
       }
-      grouped[inst.bill_id].push(inst);
+      grouped[payment.bill_id].push(payment);
     });
     return grouped;
-  }, [allInstallments]);
+  }, [allPayments]);
 
-  const installments = useMemo(() => {
+  const payments = useMemo(() => {
     if (status !== "installment") return [];
-    return allInstallments;
-  }, [status, allInstallments]);
+    return allPayments;
+  }, [status, allPayments]);
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -337,16 +337,26 @@ export default function Bills() {
   }, [filtered]);
 
   const installmentStats = useMemo(() => {
-    if (status !== "installment" || installments.length === 0) {
-      return { totalAmount: 0, paidAmount: 0, remainingAmount: 0 };
+    if (status !== "installment") {
+      return { totalAmount: 0, paidAmount: 0, remainingAmount: 0, billCount: 0 };
     }
 
-    const totalAmount = installments.reduce((sum: number, inst: any) => sum + Number(inst.amount ?? 0), 0);
-    const paidAmount = installments.reduce((sum: number, inst: any) => sum + Number(inst.paid_amount ?? 0), 0);
+    // คำนวณจากบิลที่มีสถานะ installment
+    const installmentBills = filtered.filter(bill => bill.status === "installment");
+    const totalAmount = installmentBills.reduce((sum, bill) => sum + bill.total, 0);
+    
+    // คำนวณยอดที่ชำระแล้วจาก payments
+    const paidAmount = allPayments
+      .filter((payment: any) => {
+        const bill = installmentBills.find(b => b.id === payment.bill_id);
+        return bill !== undefined;
+      })
+      .reduce((sum: number, payment: any) => sum + Number(payment.amount ?? 0), 0);
+    
     const remainingAmount = totalAmount - paidAmount;
 
-    return { totalAmount, paidAmount, remainingAmount };
-  }, [status, installments]);
+    return { totalAmount, paidAmount, remainingAmount, billCount: installmentBills.length };
+  }, [status, filtered, allPayments]);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -393,11 +403,11 @@ export default function Bills() {
 
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">จำนวนงวด</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">จำนวนบิล</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{installments.length}</div>
-                <p className="text-xs text-muted-foreground mt-1">งวดทั้งหมด</p>
+                <div className="text-2xl font-bold">{installmentStats.billCount}</div>
+                <p className="text-xs text-muted-foreground mt-1">บิลที่ชำระไม่ครบ</p>
               </CardContent>
             </Card>
           </>
@@ -591,10 +601,9 @@ export default function Bills() {
                   </TableRow>
                 ) : (
                   filtered.map((r) => {
-                    const billInstallments = installmentsByBillId[r.id] || [];
-                    const totalAmount = billInstallments.reduce((sum, inst) => sum + Number(inst.amount ?? 0), 0);
-                    const paidAmount = billInstallments.reduce((sum, inst) => sum + Number(inst.paid_amount ?? 0), 0);
-                    const remainingAmount = totalAmount - paidAmount;
+                    const billPayments = paymentsByBillId[r.id] || [];
+                    const paidAmount = billPayments.reduce((sum, payment) => sum + Number(payment.amount ?? 0), 0);
+                    const remainingAmount = r.total - paidAmount;
                     
                     const isExpanded = expandedInstallments[r.id] ?? false;
                     
@@ -602,7 +611,7 @@ export default function Bills() {
                       <>
                         <TableRow key={r.id}>
                           <TableCell>
-                            {r.status === "installment" && billInstallments.length > 0 && (
+                            {r.status === "installment" && billPayments.length > 0 && (
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -662,8 +671,8 @@ export default function Bills() {
                             <Button size="sm" variant="destructive" className="hover-scale" aria-label="ลบ" onClick={() => setDeleteId(r.id)}><Trash2 /></Button>
                           </TableCell>
                         </TableRow>
-                        {r.status === "installment" && billInstallments.length > 0 && isExpanded && (
-                          <TableRow key={`${r.id}-installment-info`} className="bg-muted/30">
+                        {r.status === "installment" && billPayments.length > 0 && isExpanded && (
+                          <TableRow key={`${r.id}-payment-info`} className="bg-muted/30">
                             <TableCell colSpan={7}>
                               <div className="flex items-center justify-between py-2 px-4">
                                 <Button
@@ -675,15 +684,15 @@ export default function Bills() {
                                 </Button>
                                 <div className="flex items-center gap-6 text-sm">
                                   <div className="flex items-center gap-2">
-                                    <span className="text-muted-foreground">ยอดเงินทั้งหมด:</span>
-                                    <span className="font-semibold">฿{totalAmount.toLocaleString()}</span>
+                                    <span className="text-muted-foreground">ยอดบิล:</span>
+                                    <span className="font-semibold">฿{r.total.toLocaleString()}</span>
                                   </div>
                                   <div className="flex items-center gap-2">
-                                    <span className="text-muted-foreground">ยอดที่ชำระแล้ว:</span>
+                                    <span className="text-muted-foreground">ชำระแล้ว:</span>
                                     <span className="font-semibold text-[hsl(var(--positive))]">฿{paidAmount.toLocaleString()}</span>
                                   </div>
                                   <div className="flex items-center gap-2">
-                                    <span className="text-muted-foreground">ยอดที่คงเหลือ:</span>
+                                    <span className="text-muted-foreground">คงเหลือ:</span>
                                     <span className="font-semibold text-yellow-600">฿{remainingAmount.toLocaleString()}</span>
                                   </div>
                                 </div>
