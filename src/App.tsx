@@ -26,7 +26,6 @@ import Employees from "./pages/Employees";
 import EmployeeProfile from "./pages/EmployeeProfile";
 import AuditLogs from "./pages/AuditLogs";
 import Install from "./pages/Install";
-import Installments from "./pages/Installments";
 import { ErrorBoundary } from "./components/common/ErrorBoundary";
 
 const queryClient = new QueryClient();
@@ -58,7 +57,6 @@ const App = () => (
                 <Route path="/employees" element={<Employees />} />
                 <Route path="/employee-profile/:id" element={<EmployeeProfile />} />
                 <Route path="/audit-logs" element={<AuditLogs />} />
-                <Route path="/installments" element={<Installments />} />
               </Route>
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="/print/:invoiceId" element={<PrintInvoice />} />
