@@ -73,10 +73,9 @@ export function InstallmentDialog({ open, onOpenChange, billId, billTotal, onSuc
 
   const addInstallment = () => {
     const newNumber = installments.length + 1;
-    // คำนวณยอดคงเหลือ = ยอดบิลทั้งหมด - ยอดที่ชำระไปแล้ว - ยอดที่จัดสรรให้งวดอื่นๆแล้ว
-    const totalAllocated = installments.reduce((sum, inst) => sum + Number(inst.amount), 0);
+    // คำนวณยอดคงเหลือ = ยอดบิลทั้งหมด - ยอดที่ชำระไปแล้วทั้งหมด
     const totalPaid = installments.reduce((sum, inst) => sum + Number(inst.paid_amount), 0);
-    const remainingAmount = billTotal - totalPaid - totalAllocated;
+    const remainingAmount = billTotal - totalPaid;
     
     setInstallments([...installments, {
       installment_number: newNumber,
