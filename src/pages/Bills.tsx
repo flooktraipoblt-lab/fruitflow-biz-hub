@@ -252,16 +252,12 @@ export default function Bills() {
         throw new Error('ไม่พบเนื้อหาบิล');
       }
 
-      // Capture with high quality settings for LINE
+      // Capture with same settings as PrintInvoice for consistent quality
       const canvas = await html2canvas(billElement, {
         backgroundColor: '#ffffff',
-        scale: 4, // High quality for clear display in LINE
+        scale: 2, // Match PrintInvoice scale
         useCORS: true,
         allowTaint: false,
-        foreignObjectRendering: false,
-        logging: false,
-        imageTimeout: 0,
-        removeContainer: true,
       });
 
       // Remove iframe
