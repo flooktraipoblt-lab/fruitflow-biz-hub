@@ -608,18 +608,27 @@ export default function Bills() {
                         {r.status === "installment" && billInstallments.length > 0 && isExpanded && (
                           <TableRow key={`${r.id}-installment-info`} className="bg-muted/30">
                             <TableCell colSpan={7}>
-                              <div className="flex items-center justify-end gap-6 py-2 px-4 text-sm">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-muted-foreground">ยอดเงินทั้งหมด:</span>
-                                  <span className="font-semibold">฿{totalAmount.toLocaleString()}</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-muted-foreground">ยอดที่ชำระแล้ว:</span>
-                                  <span className="font-semibold text-[hsl(var(--positive))]">฿{paidAmount.toLocaleString()}</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-muted-foreground">ยอดที่คงเหลือ:</span>
-                                  <span className="font-semibold text-yellow-600">฿{remainingAmount.toLocaleString()}</span>
+                              <div className="flex items-center justify-between py-2 px-4">
+                                <Button
+                                  size="sm"
+                                  onClick={() => setInstallmentBill({ id: r.id, total: r.total })}
+                                  className="hover-scale"
+                                >
+                                  บันทึกการชำระ
+                                </Button>
+                                <div className="flex items-center gap-6 text-sm">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-muted-foreground">ยอดเงินทั้งหมด:</span>
+                                    <span className="font-semibold">฿{totalAmount.toLocaleString()}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-muted-foreground">ยอดที่ชำระแล้ว:</span>
+                                    <span className="font-semibold text-[hsl(var(--positive))]">฿{paidAmount.toLocaleString()}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-muted-foreground">ยอดที่คงเหลือ:</span>
+                                    <span className="font-semibold text-yellow-600">฿{remainingAmount.toLocaleString()}</span>
+                                  </div>
                                 </div>
                               </div>
                             </TableCell>
