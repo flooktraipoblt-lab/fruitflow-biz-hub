@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Calendar as CalendarIcon, Printer, Pencil, Trash2, MessageCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { useMemo, useState, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -41,6 +42,9 @@ export default function Bills() {
   const [updateStatusData, setUpdateStatusData] = useState<{ id: string; status: "paid" | "due" } | null>(null);
   const [installmentBill, setInstallmentBill] = useState<{ id: string; total: number } | null>(null);
   const [expandedInstallments, setExpandedInstallments] = useState<Record<string, boolean>>({});
+  const [lineDialogData, setLineDialogData] = useState<{ billId: string; imageBase64: string; billInfo: any } | null>(null);
+  const [lineUserId, setLineUserId] = useState("");
+  const [isSendingLine, setIsSendingLine] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { session } = useAuthData();
@@ -190,6 +194,13 @@ export default function Bills() {
       if (billError) throw billError;
       if (!bill) throw new Error("ไม่พบข้อมูลบิล");
 
+      // Fetch customer data to get LINE User ID if available
+      const { data: customer } = await supabase
+        .from("customers")
+        .select("line_user_id")
+        .eq("name", bill.customer)
+        .single();
+
       // Create hidden iframe to load the print page
       const iframe = document.createElement('iframe');
       iframe.style.position = 'fixed';
@@ -243,63 +254,74 @@ export default function Bills() {
       // Remove iframe
       document.body.removeChild(iframe);
 
-      // Convert canvas to blob
-      const blob = await new Promise<Blob>((resolve, reject) => {
-        canvas.toBlob((b) => {
-          if (b) resolve(b);
-          else reject(new Error('Failed to create image'));
-        }, 'image/png', 1.0);
+      // Convert canvas to base64
+      const imageBase64 = canvas.toDataURL('image/png', 1.0);
+
+      const billInfo = {
+        billNo: bill.bill_no,
+        customer: bill.customer,
+        type: bill.type,
+        total: bill.total,
+        date: format(new Date(bill.bill_date), "dd/MM/yyyy"),
+      };
+
+      // If customer has LINE User ID, prefill it
+      if (customer?.line_user_id) {
+        setLineUserId(customer.line_user_id);
+      } else {
+        setLineUserId("");
+      }
+
+      // Open dialog to enter LINE User ID
+      setLineDialogData({ billId, imageBase64, billInfo });
+    } catch (error: any) {
+      console.error('Error preparing bill:', error);
+      toast({ title: "เกิดข้อผิดพลาดในการสร้างรูปภาพ", variant: "destructive" });
+    }
+  };
+
+  const sendToLine = async () => {
+    if (!lineDialogData || !lineUserId.trim()) {
+      toast({ title: "กรุณาใส่ LINE User ID", variant: "destructive" });
+      return;
+    }
+
+    setIsSendingLine(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('send-line-bill', {
+        body: {
+          lineUserId: lineUserId.trim(),
+          imageBase64: lineDialogData.imageBase64,
+          billInfo: lineDialogData.billInfo,
+        },
       });
 
-      const fileName = `bill-${bill.bill_no}.png`;
-      const file = new File([blob], fileName, { type: 'image/png' });
+      if (error) throw error;
 
-      // Try to use Web Share API
-      if (navigator.share && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          files: [file],
-          title: `บิล ${bill.bill_no}`,
-          text: `${bill.type === 'buy' ? 'บิลซื้อ' : 'บิลขาย'} - ${bill.customer}`,
-        });
+      // Save share data
+      await supabase.from('bill_shares').insert({
+        bill_id: lineDialogData.billId,
+        bill_no: lineDialogData.billInfo.billNo,
+        customer_name: lineDialogData.billInfo.customer,
+        bill_type: lineDialogData.billInfo.type,
+        total_amount: lineDialogData.billInfo.total,
+        bill_date: new Date().toISOString(),
+        shared_at: new Date().toISOString(),
+        owner_id: session?.user.id,
+      });
 
-        // Save share data
-        await supabase.from('bill_shares').insert({
-          bill_id: bill.id,
-          bill_no: bill.bill_no,
-          customer_name: bill.customer,
-          bill_type: bill.type,
-          total_amount: bill.total,
-          bill_date: bill.bill_date,
-          shared_at: new Date().toISOString(),
-          owner_id: session?.user.id,
-        });
-
-        toast({ title: "แชร์สำเร็จ" });
-      } else {
-        // Fallback: Download the file
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-
-        const billType = bill.type === 'buy' ? 'บิลซื้อ' : 'บิลขาย';
-        toast({ 
-          title: "ดาวน์โหลดสำเร็จ", 
-          description: `รูปบิลถูกดาวน์โหลดแล้ว กดแชร์จากแกลเลอรี่เพื่อส่งไป LINE`
-        });
-      }
+      toast({ title: "ส่งบิลผ่าน LINE สำเร็จ" });
+      setLineDialogData(null);
+      setLineUserId("");
     } catch (error: any) {
-      // Check if user cancelled the share
-      if (error.name === 'AbortError') {
-        toast({ title: "ยกเลิกการแชร์" });
-        return;
-      }
-      console.error('Error sharing to Line:', error);
-      toast({ title: "เกิดข้อผิดพลาดในการสร้างรูปภาพ", variant: "destructive" });
+      console.error('Error sending to LINE:', error);
+      toast({ 
+        title: "เกิดข้อผิดพลาดในการส่ง LINE", 
+        description: error.message || "กรุณาตรวจสอบ LINE User ID และลองอีกครั้ง",
+        variant: "destructive" 
+      });
+    } finally {
+      setIsSendingLine(false);
     }
   };
 
@@ -738,6 +760,47 @@ export default function Bills() {
           onSuccess={refetch}
         />
       )}
+
+      <Dialog open={!!lineDialogData} onOpenChange={(open) => !open && setLineDialogData(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>ส่งบิลผ่าน LINE</DialogTitle>
+            <DialogDescription>
+              ใส่ LINE User ID ของผู้รับเพื่อส่งบิลผ่าน LINE Messaging API
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="lineUserId">LINE User ID</Label>
+              <Input
+                id="lineUserId"
+                placeholder="เช่น U1234567890abcdef..."
+                value={lineUserId}
+                onChange={(e) => setLineUserId(e.target.value)}
+                disabled={isSendingLine}
+              />
+              <p className="text-xs text-muted-foreground">
+                ผู้รับต้องเป็นเพื่อนกับ LINE Official Account ก่อน
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setLineDialogData(null)}
+              disabled={isSendingLine}
+            >
+              ยกเลิก
+            </Button>
+            <Button 
+              onClick={sendToLine}
+              disabled={isSendingLine || !lineUserId.trim()}
+            >
+              {isSendingLine ? "กำลังส่ง..." : "ส่ง LINE"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

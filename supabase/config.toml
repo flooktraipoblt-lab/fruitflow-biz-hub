@@ -1,1 +1,4 @@
 project_id = "buytjijgcqhadktjwuhn"
+
+[functions.send-line-bill]
+verify_jwt = true
