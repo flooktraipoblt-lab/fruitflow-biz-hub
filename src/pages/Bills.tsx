@@ -94,6 +94,22 @@ export default function Bills() {
     },
   });
 
+  const { data: installments = [] } = useQuery({
+    queryKey: ["installments", status],
+    queryFn: async () => {
+      if (status !== "installment") return [];
+      
+      const { data, error } = await (supabase as any)
+        .from("bill_installments")
+        .select("*")
+        .order("due_date", { ascending: true });
+      
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: status === "installment",
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       // ลบจาก Supabase ก่อน
@@ -249,6 +265,18 @@ export default function Bills() {
     return { totalBills, totalAmount, dueBills, dueAmount, paidBills, paidAmount };
   }, [filtered]);
 
+  const installmentStats = useMemo(() => {
+    if (status !== "installment" || installments.length === 0) {
+      return { totalAmount: 0, paidAmount: 0, remainingAmount: 0 };
+    }
+
+    const totalAmount = installments.reduce((sum: number, inst: any) => sum + Number(inst.amount ?? 0), 0);
+    const paidAmount = installments.reduce((sum: number, inst: any) => sum + Number(inst.paid_amount ?? 0), 0);
+    const remainingAmount = totalAmount - paidAmount;
+
+    return { totalAmount, paidAmount, remainingAmount };
+  }, [status, installments]);
+
   return (
     <div className="space-y-6 animate-fade-in">
       <Helmet>
@@ -260,45 +288,91 @@ export default function Bills() {
       <h1 className="text-2xl font-bold">รายการบิล</h1>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">จำนวนบิลทั้งหมด</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalBills}</div>
-            <p className="text-xs text-muted-foreground mt-1">บิลที่กรองแล้ว</p>
-          </CardContent>
-        </Card>
+        {status === "installment" ? (
+          <>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">ยอดเงินทั้งหมด</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">฿{installmentStats.totalAmount.toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground mt-1">ยอดรวมทั้งหมด</p>
+              </CardContent>
+            </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">ยอดรวมทั้งหมด</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">฿{stats.totalAmount.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground mt-1">ยอดรวมทั้งหมด</p>
-          </CardContent>
-        </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">ยอดที่ชำระแล้ว</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-[hsl(var(--positive))]">฿{installmentStats.paidAmount.toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground mt-1">ยอดที่ชำระแล้ว</p>
+              </CardContent>
+            </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">บิลค้างจ่าย</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-destructive">{stats.dueBills}</div>
-            <p className="text-xs text-muted-foreground mt-1">฿{stats.dueAmount.toLocaleString()}</p>
-          </CardContent>
-        </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">ยอดที่คงเหลือ</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-yellow-600">฿{installmentStats.remainingAmount.toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground mt-1">ยอดค้างชำระ</p>
+              </CardContent>
+            </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">บิลชำระแล้ว</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-[hsl(var(--positive))]">{stats.paidBills}</div>
-            <p className="text-xs text-muted-foreground mt-1">฿{stats.paidAmount.toLocaleString()}</p>
-          </CardContent>
-        </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">จำนวนงวด</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{installments.length}</div>
+                <p className="text-xs text-muted-foreground mt-1">งวดทั้งหมด</p>
+              </CardContent>
+            </Card>
+          </>
+        ) : (
+          <>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">จำนวนบิลทั้งหมด</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.totalBills}</div>
+                <p className="text-xs text-muted-foreground mt-1">บิลที่กรองแล้ว</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">ยอดรวมทั้งหมด</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">฿{stats.totalAmount.toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground mt-1">ยอดรวมทั้งหมด</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">บิลค้างจ่าย</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-destructive">{stats.dueBills}</div>
+                <p className="text-xs text-muted-foreground mt-1">฿{stats.dueAmount.toLocaleString()}</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">บิลชำระแล้ว</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-[hsl(var(--positive))]">{stats.paidBills}</div>
+                <p className="text-xs text-muted-foreground mt-1">฿{stats.paidAmount.toLocaleString()}</p>
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
 
       <Card>
