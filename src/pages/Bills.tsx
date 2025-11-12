@@ -210,7 +210,6 @@ export default function Bills() {
 
         iframe.onload = () => {
           clearTimeout(timeout);
-          // Wait a bit more for content to render
           setTimeout(resolve, 2000);
         };
 
@@ -252,34 +251,53 @@ export default function Bills() {
         }, 'image/png', 1.0);
       });
 
-      // Create download link for the image
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `bill-${bill.bill_no}.png`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      const fileName = `bill-${bill.bill_no}.png`;
+      const file = new File([blob], fileName, { type: 'image/png' });
 
-      // Save share data
-      await supabase.from('bill_shares').insert({
-        bill_id: bill.id,
-        bill_no: bill.bill_no,
-        customer_name: bill.customer,
-        bill_type: bill.type,
-        total_amount: bill.total,
-        bill_date: bill.bill_date,
-        shared_at: new Date().toISOString(),
-        owner_id: session?.user.id,
-      });
+      // Try to use Web Share API
+      if (navigator.share && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: `บิล ${bill.bill_no}`,
+          text: `${bill.type === 'buy' ? 'บิลซื้อ' : 'บิลขาย'} - ${bill.customer}`,
+        });
 
-      const billType = bill.type === 'buy' ? 'บิลซื้อ' : 'บิลขาย';
-      toast({ 
-        title: "ดาวน์โหลดสำเร็จ", 
-        description: `รูปบิลถูกดาวน์โหลดแล้ว คุณสามารถแชร์ไป Line ได้เลย\nวันที่: ${format(new Date(bill.bill_date), "dd/MM/yyyy")}\nลูกค้า: ${bill.customer}\nประเภท: ${billType}`
-      });
-    } catch (error) {
+        // Save share data
+        await supabase.from('bill_shares').insert({
+          bill_id: bill.id,
+          bill_no: bill.bill_no,
+          customer_name: bill.customer,
+          bill_type: bill.type,
+          total_amount: bill.total,
+          bill_date: bill.bill_date,
+          shared_at: new Date().toISOString(),
+          owner_id: session?.user.id,
+        });
+
+        toast({ title: "แชร์สำเร็จ" });
+      } else {
+        // Fallback: Download the file
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        const billType = bill.type === 'buy' ? 'บิลซื้อ' : 'บิลขาย';
+        toast({ 
+          title: "ดาวน์โหลดสำเร็จ", 
+          description: `รูปบิลถูกดาวน์โหลดแล้ว กดแชร์จากแกลเลอรี่เพื่อส่งไป LINE`
+        });
+      }
+    } catch (error: any) {
+      // Check if user cancelled the share
+      if (error.name === 'AbortError') {
+        toast({ title: "ยกเลิกการแชร์" });
+        return;
+      }
       console.error('Error sharing to Line:', error);
       toast({ title: "เกิดข้อผิดพลาดในการสร้างรูปภาพ", variant: "destructive" });
     }
