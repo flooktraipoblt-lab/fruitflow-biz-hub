@@ -370,7 +370,7 @@ export default function PrintInvoice() {
         .title { font-size: 16pt; font-weight: 700; }
         .meta { font-size: 11pt; }
         table { width: 100%; border-collapse: collapse; font-size: ${isOrangeBill ? '9pt' : '11pt'}; }
-        th, td { border: 1px solid #333; padding: ${isOrangeBill ? '4px 6px' : '6px 8px'}; text-align: right; }
+        th, td { border: 1px solid #333; padding: ${isOrangeBill ? '4px 6px' : '6px 8px'}; text-align: center; }
         th:first-child, td:first-child { text-align: left; }
         .foot { display: grid; grid-template-columns: 1fr 1fr; margin-top: ${isOrangeBill ? '2mm' : '4mm'}; align-items: end; }
         .sign { display:flex; justify-content: space-between; padding: 0 ${isOrangeBill ? '6mm' : '10mm'}; }

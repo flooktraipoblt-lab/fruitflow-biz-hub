@@ -42,8 +42,6 @@ export default function Bills() {
   const [updateStatusData, setUpdateStatusData] = useState<{ id: string; status: "paid" | "due" } | null>(null);
   const [installmentBill, setInstallmentBill] = useState<{ id: string; total: number } | null>(null);
   const [expandedInstallments, setExpandedInstallments] = useState<Record<string, boolean>>({});
-  const [lineDialogData, setLineDialogData] = useState<{ billId: string; imageBase64: string; billInfo: any } | null>(null);
-  const [lineUserId, setLineUserId] = useState("");
   const [isSendingLine, setIsSendingLine] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -181,8 +179,11 @@ export default function Bills() {
   });
 
   const handleShareToLine = async (billId: string) => {
+    if (isSendingLine) return;
+    
+    setIsSendingLine(true);
     try {
-      toast({ title: "กำลังเตรียมรูปภาพ..." });
+      toast({ title: "กำลังเตรียมรูปภาพ...", description: "โปรดรอสักครู่" });
 
       // Fetch bill data
       const { data: bill, error: billError } = await (supabase as any)
@@ -193,13 +194,6 @@ export default function Bills() {
 
       if (billError) throw billError;
       if (!bill) throw new Error("ไม่พบข้อมูลบิล");
-
-      // Fetch customer data to get LINE User ID if available
-      const { data: customer } = await supabase
-        .from("customers")
-        .select("line_user_id")
-        .eq("name", bill.customer)
-        .single();
 
       // Determine if this is an orange bill (portrait mode)
       const isOrangeBill = !!(bill?.processing_price_kg || bill?.paper_cost || bill?.basket_quantity);
@@ -243,6 +237,8 @@ export default function Bills() {
         };
       });
 
+      toast({ title: "กำลังสร้างรูปภาพ...", description: "เกือบเสร็จแล้ว" });
+
       // Capture bill as image from iframe
       const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
       if (!iframeDoc) {
@@ -282,34 +278,16 @@ export default function Bills() {
         date: format(new Date(bill.bill_date), "dd/MM/yyyy"),
       };
 
-      // If customer has LINE User ID, prefill it
-      if (customer?.line_user_id) {
-        setLineUserId(customer.line_user_id);
-      } else {
-        setLineUserId("");
-      }
+      toast({ title: "กำลังส่งไปยัง LINE...", description: "โปรดรอสักครู่" });
 
-      // Open dialog to enter LINE User ID
-      setLineDialogData({ billId, imageBase64, billInfo });
-    } catch (error: any) {
-      console.error('Error preparing bill:', error);
-      toast({ title: "เกิดข้อผิดพลาดในการสร้างรูปภาพ", variant: "destructive" });
-    }
-  };
-
-  const sendToLine = async () => {
-    if (!lineDialogData || !lineUserId.trim()) {
-      toast({ title: "กรุณาใส่ LINE User ID", variant: "destructive" });
-      return;
-    }
-
-    setIsSendingLine(true);
-    try {
+      // Send directly to LINE with fixed user ID
+      const lineUserId = "Ub7fb44a8602b762aded5bb4958e9ebe9";
+      
       const { data, error } = await supabase.functions.invoke('send-line-bill', {
         body: {
-          lineUserId: lineUserId.trim(),
-          imageBase64: lineDialogData.imageBase64,
-          billInfo: lineDialogData.billInfo,
+          lineUserId: lineUserId,
+          imageBase64: imageBase64,
+          billInfo: billInfo,
         },
       });
 
@@ -317,24 +295,22 @@ export default function Bills() {
 
       // Save share data
       await supabase.from('bill_shares').insert({
-        bill_id: lineDialogData.billId,
-        bill_no: lineDialogData.billInfo.billNo,
-        customer_name: lineDialogData.billInfo.customer,
-        bill_type: lineDialogData.billInfo.type,
-        total_amount: lineDialogData.billInfo.total,
+        bill_id: billId,
+        bill_no: billInfo.billNo,
+        customer_name: billInfo.customer,
+        bill_type: billInfo.type,
+        total_amount: billInfo.total,
         bill_date: new Date().toISOString(),
         shared_at: new Date().toISOString(),
         owner_id: session?.user.id,
       });
 
-      toast({ title: "ส่งบิลผ่าน LINE สำเร็จ" });
-      setLineDialogData(null);
-      setLineUserId("");
+      toast({ title: "✅ ส่งบิลผ่าน LINE สำเร็จ", description: "ส่งไปยังไลน์เรียบร้อยแล้ว" });
     } catch (error: any) {
       console.error('Error sending to LINE:', error);
       toast({ 
         title: "เกิดข้อผิดพลาดในการส่ง LINE", 
-        description: error.message || "กรุณาตรวจสอบ LINE User ID และลองอีกครั้ง",
+        description: error.message || "กรุณาลองอีกครั้ง",
         variant: "destructive" 
       });
     } finally {
@@ -777,47 +753,6 @@ export default function Bills() {
           onSuccess={refetch}
         />
       )}
-
-      <Dialog open={!!lineDialogData} onOpenChange={(open) => !open && setLineDialogData(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>ส่งบิลผ่าน LINE</DialogTitle>
-            <DialogDescription>
-              ใส่ LINE User ID ของผู้รับเพื่อส่งบิลผ่าน LINE Messaging API
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="lineUserId">LINE User ID</Label>
-              <Input
-                id="lineUserId"
-                placeholder="เช่น U1234567890abcdef..."
-                value={lineUserId}
-                onChange={(e) => setLineUserId(e.target.value)}
-                disabled={isSendingLine}
-              />
-              <p className="text-xs text-muted-foreground">
-                ผู้รับต้องเป็นเพื่อนกับ LINE Official Account ก่อน
-              </p>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setLineDialogData(null)}
-              disabled={isSendingLine}
-            >
-              ยกเลิก
-            </Button>
-            <Button 
-              onClick={sendToLine}
-              disabled={isSendingLine || !lineUserId.trim()}
-            >
-              {isSendingLine ? "กำลังส่ง..." : "ส่ง LINE"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
