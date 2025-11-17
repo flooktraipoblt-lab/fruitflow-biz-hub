@@ -21,7 +21,9 @@ import {
   TrendingUp,
   Settings,
   Clock,
-  CheckCircle2
+  CheckCircle2,
+  Eye,
+  EyeOff
 } from "lucide-react";
 
 const money = (n: number) => n.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -30,6 +32,7 @@ type RangeKey = "today" | "7d" | "month";
 
 export default function Dashboard() {
   const [range, setRange] = useState<RangeKey>("today");
+  const [showProfit, setShowProfit] = useState(false);
   const navigate = useNavigate();
 
   const rangeDates = useMemo(() => {
@@ -107,7 +110,15 @@ export default function Dashboard() {
         <MetricCard title="ยอดซื้อทั้งหมด" value={`฿ ${money(metrics.buy)}`} range={range} onRange={setRange} />
         <MetricCard title="ยอดขายทั้งหมด" value={`฿ ${money(metrics.sell)}`} range={range} onRange={setRange} />
         <MetricCard title="ค่าใช้จ่าย" value={`฿ ${money(metrics.expenses)}`} range={range} onRange={setRange} />
-        <MetricCard title="กำไร" value={`฿ ${money(metrics.profit)}`} range={range} onRange={setRange} />
+        <MetricCard 
+          title="กำไร" 
+          value={`฿ ${money(metrics.profit)}`} 
+          range={range} 
+          onRange={setRange}
+          isProfit
+          showValue={showProfit}
+          onToggleShow={() => setShowProfit(!showProfit)}
+        />
       </div>
 
       {/* Quick Actions */}
@@ -241,17 +252,34 @@ interface MetricCardProps {
   value: string;
   range: RangeKey;
   onRange: (r: RangeKey) => void;
+  isProfit?: boolean;
+  showValue?: boolean;
+  onToggleShow?: () => void;
 }
 
-function MetricCard({ title, value, range, onRange }: MetricCardProps) {
+function MetricCard({ title, value, range, onRange, isProfit, showValue = true, onToggleShow }: MetricCardProps) {
+  const displayValue = isProfit && !showValue ? "฿ •••••" : value;
+  
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <ExportButton data={[value]} filename={`${title}.txt`} />
+        <div className="flex items-center gap-2">
+          {isProfit && onToggleShow && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={onToggleShow}
+            >
+              {showValue ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </Button>
+          )}
+          <ExportButton data={[value]} filename={`${title}.txt`} />
+        </div>
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
+        <div className="text-2xl font-bold">{displayValue}</div>
         <Tabs value={range} onValueChange={(v) => onRange(v as RangeKey)} className="mt-3">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="today">วันนี้</TabsTrigger>
