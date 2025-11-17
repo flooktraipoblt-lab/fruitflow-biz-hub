@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
+import { ShoppingBasket } from "lucide-react";
 
 export default function CustomerDetail() {
   const { id } = useParams();
@@ -260,31 +261,40 @@ export default function CustomerDetail() {
                   ไม่มีข้อมูลคงเหลือ
                 </div>
               ) : (
-                Object.entries(basketSummary).map(([k,v]) => (
-                  <div key={k} className={`flex justify-between items-center rounded-xl p-4 border-2 transition-all duration-200 hover:scale-[1.02] ${
-                    v > 0 
-                      ? 'bg-accent/10 border-accent/30 hover:bg-accent/15' 
-                      : v < 0 
-                        ? 'bg-destructive/10 border-destructive/30 hover:bg-destructive/15' 
-                        : 'bg-muted/10 border-muted/30 hover:bg-muted/15'
-                  }`}>
-                    <span className="font-semibold text-foreground flex items-center gap-2">
-                      🗂️ {k}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <span className={`font-bold text-xl px-3 py-1 rounded-lg ${
-                        v > 0 
-                          ? 'text-accent bg-accent/20' 
-                          : v < 0 
-                            ? 'text-destructive bg-destructive/20' 
-                            : 'text-muted-foreground bg-muted/20'
-                      }`}>
-                        {v > 0 ? '+' : ''}{v}
+                Object.entries(basketSummary).map(([k,v]) => {
+                  const [type, name] = k.split(':');
+                  const isNamed = type === 'named';
+                  const displayName = isNamed 
+                    ? `ตะกร้าชื่อ: ${name || '-'}` 
+                    : `ตะกร้าฉับฉ่าย`;
+                  
+                  return (
+                    <div key={k} className={`flex justify-between items-center rounded-xl p-4 border-2 transition-all duration-200 hover:scale-[1.02] ${
+                      v > 0 
+                        ? 'bg-accent/10 border-accent/30 hover:bg-accent/15' 
+                        : v < 0 
+                          ? 'bg-destructive/10 border-destructive/30 hover:bg-destructive/15' 
+                          : 'bg-muted/10 border-muted/30 hover:bg-muted/15'
+                    }`}>
+                      <span className="font-semibold text-foreground flex items-center gap-2">
+                        <ShoppingBasket className="h-5 w-5" />
+                        {displayName}
                       </span>
-                      <span className="text-sm text-muted-foreground">ชิ้น</span>
+                      <div className="flex items-center gap-2">
+                        <span className={`font-bold text-xl px-3 py-1 rounded-lg ${
+                          v > 0 
+                            ? 'text-accent bg-accent/20' 
+                            : v < 0 
+                              ? 'text-destructive bg-destructive/20' 
+                              : 'text-muted-foreground bg-muted/20'
+                        }`}>
+                          {v > 0 ? '+' : ''}{v}
+                        </span>
+                        <span className="text-sm text-muted-foreground">ชิ้น</span>
+                      </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>
