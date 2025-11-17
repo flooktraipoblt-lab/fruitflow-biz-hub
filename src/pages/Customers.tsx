@@ -40,8 +40,10 @@ export default function Customers() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
   const [editingPhone, setEditingPhone] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
 
   const { customerNames } = useAutocompleteData();
+  const itemsPerPage = 20;
 
   const { data: customers = [], isLoading, refetch } = useQuery<Customer[]>({
     queryKey: ["customers"],
@@ -58,6 +60,14 @@ export default function Customers() {
   const filtered = useMemo(() => customers.filter(c =>
     (!q || c.name.toLowerCase().includes(q.toLowerCase()) || (c.phone ?? "").includes(q))
   ), [customers, q]);
+
+  // Paginated customers
+  const paginatedCustomers = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filtered.slice(startIndex, startIndex + itemsPerPage);
+  }, [filtered, currentPage, itemsPerPage]);
+
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
 
   const insertMutation = useMutation({
     mutationFn: async () => {
@@ -176,11 +186,11 @@ export default function Customers() {
                       <LoadingTable columns={4} rows={5} />
                     </TableCell>
                   </TableRow>
-                ) : filtered.length === 0 ? (
+                ) : paginatedCustomers.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={4}>ไม่พบข้อมูล</TableCell>
                   </TableRow>
-                ) : filtered.map((c) => (
+                ) : paginatedCustomers.map((c) => (
                   <TableRow key={c.id}>
                     <TableCell>
                       {editingId === c.id ? (
@@ -266,6 +276,38 @@ export default function Customers() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <Card className="shadow-elegant border-primary/10 bg-card">
+          <CardContent className="py-6">
+            <div className="flex justify-center items-center gap-4">
+              <Button
+                variant="outline"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(currentPage - 1)}
+                className="border-primary/20 hover:border-primary/40"
+              >
+                ก่อนหน้า
+              </Button>
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">หน้า</span>
+                <span className="text-lg font-bold text-primary">{currentPage}</span>
+                <span className="text-muted-foreground">จาก</span>
+                <span className="text-lg font-bold text-primary">{totalPages}</span>
+              </div>
+              <Button
+                variant="outline"
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(currentPage + 1)}
+                className="border-primary/20 hover:border-primary/40"
+              >
+                ถัดไป
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

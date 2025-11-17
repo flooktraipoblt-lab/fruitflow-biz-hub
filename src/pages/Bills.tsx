@@ -43,9 +43,12 @@ export default function Bills() {
   const [installmentBill, setInstallmentBill] = useState<{ id: string; total: number } | null>(null);
   const [expandedInstallments, setExpandedInstallments] = useState<Record<string, boolean>>({});
   const [isSendingLine, setIsSendingLine] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { session } = useAuthData();
+  
+  const itemsPerPage = 20;
 
   const [custSuggestions, setCustSuggestions] = useState<string[]>([]);
   const [itemSuggestions, setItemSuggestions] = useState<string[]>([]);
@@ -358,6 +361,14 @@ export default function Bills() {
     return { totalAmount, paidAmount, remainingAmount, billCount: installmentBills.length };
   }, [status, filtered, allPayments]);
 
+  // Paginated bills
+  const paginatedBills = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filtered.slice(startIndex, startIndex + itemsPerPage);
+  }, [filtered, currentPage, itemsPerPage]);
+
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+
   return (
     <div className="space-y-6 animate-fade-in">
       <Helmet>
@@ -595,12 +606,12 @@ export default function Bills() {
                       <TableCell><div className="h-4 w-32 bg-muted animate-pulse rounded ml-auto" /></TableCell>
                     </TableRow>
                   ))
-                ) : filtered.length === 0 ? (
+                ) : paginatedBills.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7}>ไม่พบข้อมูล</TableCell>
                   </TableRow>
                 ) : (
-                  filtered.map((r) => {
+                  paginatedBills.map((r) => {
                     const billPayments = paymentsByBillId[r.id] || [];
                     const paidAmount = billPayments.reduce((sum, payment) => sum + Number(payment.amount ?? 0), 0);
                     const remainingAmount = r.total - paidAmount;
@@ -759,6 +770,38 @@ export default function Bills() {
           billTotal={installmentBill.total}
           onSuccess={refetch}
         />
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <Card className="shadow-elegant border-primary/10 bg-card">
+          <CardContent className="py-6">
+            <div className="flex justify-center items-center gap-4">
+              <Button
+                variant="outline"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(currentPage - 1)}
+                className="border-primary/20 hover:border-primary/40"
+              >
+                ก่อนหน้า
+              </Button>
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">หน้า</span>
+                <span className="text-lg font-bold text-primary">{currentPage}</span>
+                <span className="text-muted-foreground">จาก</span>
+                <span className="text-lg font-bold text-primary">{totalPages}</span>
+              </div>
+              <Button
+                variant="outline"
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(currentPage + 1)}
+                className="border-primary/20 hover:border-primary/40"
+              >
+                ถัดไป
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   );
