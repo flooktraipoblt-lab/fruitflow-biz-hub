@@ -310,7 +310,8 @@ export default function PrintInvoice() {
   const processingCost = isOrangeBill && bill ? (totalWeight * (Number(bill.processing_price_kg) || 0)) : 0;
   const paperCost = isOrangeBill && bill ? (Number(bill.paper_cost) || 0) : 0;
   const basketQuantity = isOrangeBill && bill ? (Number(bill.basket_quantity) || 0) : 0;
-  const finalTotal = isOrangeBill ? (overallTotal + processingCost + paperCost) : overallTotal;
+  const discount = isOrangeBill && bill ? (Number(bill.discount) || 0) : 0;
+  const finalTotal = isOrangeBill ? (overallTotal + processingCost + paperCost - discount) : overallTotal;
 
   const invDate = invoice?.date || invoice?.bill_date || invoice?.created_at;
   const dateStr = invDate ? new Date(invDate).toLocaleDateString("th-TH") : "";
@@ -542,6 +543,13 @@ export default function PrintInvoice() {
                 
                 <div>จำนวนส้มทั้งหมด:</div>
                 <div style={{ fontWeight: '700' }}>{basketQuantity} ตะกร้า</div>
+                
+                {discount > 0 && (
+                  <>
+                    <div>ส่วนลด:</div>
+                    <div style={{ fontWeight: '700', color: '#dc2626' }}>-{nf.format(discount)} บาท</div>
+                  </>
+                )}
                 
                 <div className="expense-total">
                   จำนวนเงินรวมทั้งหมด:
