@@ -54,6 +54,7 @@ export default function CreateBill() {
   const [orangeWeightPerBasket, setOrangeWeightPerBasket] = useState<number | "">("");
   const [orangeProcessingPriceKg, setOrangeProcessingPriceKg] = useState<number | "">("");
   const [orangePaperCost, setOrangePaperCost] = useState<number | "">("");
+  const [orangeDiscount, setOrangeDiscount] = useState<number | "">("");
   const [orangeGrandTotal, setOrangeGrandTotal] = useState<number | "">("");
   const [orangeReceipt, setOrangeReceipt] = useState("");
   const [orangeNote, setOrangeNote] = useState("");
@@ -66,7 +67,7 @@ export default function CreateBill() {
       try {
         const { data: bill, error: billErr } = await (supabase as any)
           .from("bills")
-          .select("id, bill_date, customer, type, total, status, processing_price_kg, paper_cost, basket_quantity, phone, customer_note")
+          .select("id, bill_date, customer, type, total, status, processing_price_kg, paper_cost, basket_quantity, phone, customer_note, discount")
           .eq("id", billId)
           .maybeSingle();
         if (billErr) throw billErr;
@@ -86,6 +87,7 @@ export default function CreateBill() {
             setOrangeBasketQty(bill.basket_quantity ?? "");
             setOrangePhone(bill.phone ?? "");
             setOrangeNote(bill.customer_note ?? "");
+            setOrangeDiscount(bill.discount ?? "");
           }
         }
         // Load bill items
@@ -865,32 +867,39 @@ export default function CreateBill() {
                 </div>
               </div>
 
-              <div className="grid gap-2">
-                <Label className="text-lg font-bold">จำนวนเงินรวมทั้งหมด (auto)</Label>
-                <Input type="number" value={
-                  (() => {
-                    const totalAmount = orangeItems.reduce((sum, item) => {
-                      const qty = Number(item.qty) || 0;
-                      const weight = Number(item.weight) || 0;
-                      const fraction = Number(item.fraction) || 0;
-                      const price = Number(item.price) || 0;
-                      const totalWeight = qty * weight + fraction;
-                      const amount = totalWeight * price;
-                      return sum + amount;
-                    }, 0);
-                    const processingPrice = Number(orangeProcessingPriceKg) || 0;
-                    const totalWeight = orangeItems.reduce((sum, item) => {
-                      const qty = Number(item.qty) || 0;
-                      const weight = Number(item.weight) || 0;
-                      const fraction = Number(item.fraction) || 0;
-                      const totalWeightItem = qty * weight + fraction;
-                      return sum + totalWeightItem;
-                    }, 0);
-                    const processingCost = totalWeight * processingPrice;
-                    const paperCost = Number(orangePaperCost) || 0;
-                    return (totalAmount + processingCost + paperCost).toFixed(2);
-                  })()
-                } readOnly placeholder="102135" className="text-lg font-bold bg-muted" />
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-2">
+                  <Label>ส่วนลด</Label>
+                  <Input type="number" value={orangeDiscount} onChange={(e) => setOrangeDiscount(e.target.value === "" ? "" : Number(e.target.value))} placeholder="0" />
+                </div>
+                <div className="grid gap-2">
+                  <Label className="text-lg font-bold">จำนวนเงินรวมทั้งหมด (auto)</Label>
+                  <Input type="number" value={
+                    (() => {
+                      const totalAmount = orangeItems.reduce((sum, item) => {
+                        const qty = Number(item.qty) || 0;
+                        const weight = Number(item.weight) || 0;
+                        const fraction = Number(item.fraction) || 0;
+                        const price = Number(item.price) || 0;
+                        const totalWeight = qty * weight + fraction;
+                        const amount = totalWeight * price;
+                        return sum + amount;
+                      }, 0);
+                      const processingPrice = Number(orangeProcessingPriceKg) || 0;
+                      const totalWeight = orangeItems.reduce((sum, item) => {
+                        const qty = Number(item.qty) || 0;
+                        const weight = Number(item.weight) || 0;
+                        const fraction = Number(item.fraction) || 0;
+                        const totalWeightItem = qty * weight + fraction;
+                        return sum + totalWeightItem;
+                      }, 0);
+                      const processingCost = totalWeight * processingPrice;
+                      const paperCost = Number(orangePaperCost) || 0;
+                      const discount = Number(orangeDiscount) || 0;
+                      return (totalAmount + processingCost + paperCost - discount).toFixed(2);
+                    })()
+                  } readOnly placeholder="102135" className="text-lg font-bold bg-muted" />
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -924,7 +933,8 @@ export default function CreateBill() {
                 
                 const processingCost = totalWeight * processingPrice;
                 const paperCost = Number(orangePaperCost) || 0;
-                const grandTotal = totalAmount + processingCost + paperCost;
+                const discount = Number(orangeDiscount) || 0;
+                const grandTotal = totalAmount + processingCost + paperCost - discount;
                 
                 // Check if customer exists, if not add them
                 const { data: existingCustomer } = await (supabase as any)
@@ -954,6 +964,7 @@ export default function CreateBill() {
                       basket_quantity: Number(orangeBasketQty) || 0,
                       phone: orangePhone || null,
                       customer_note: orangeNote || null,
+                      discount: discount,
                     })
                     .eq("id", billId);
                   
@@ -997,6 +1008,7 @@ export default function CreateBill() {
                       basket_quantity: Number(orangeBasketQty) || 0,
                       phone: orangePhone || null,
                       customer_note: orangeNote || null,
+                      discount: discount,
                     })
                     .select()
                     .single();
