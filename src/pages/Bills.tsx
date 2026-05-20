@@ -578,6 +578,18 @@ export default function Bills() {
           <div className="lg:col-span-5 flex items-center gap-2">
             <Button onClick={() => refetch()}>ค้นหา</Button>
             <Button variant="secondary" onClick={() => { setQ(""); setType("all"); setStatus("all"); setRange({}); }}>รีเซ็ตตัวกรอง</Button>
+            <Button
+              variant="default"
+              className="ml-auto gap-2 bg-gradient-to-r from-primary to-primary/80 shadow-md hover:shadow-lg transition-all"
+              onClick={() => {
+                setPrintRange({ from: range.from, to: range.to });
+                setPrintType(type);
+                setPrintAllOpen(true);
+              }}
+            >
+              <FileDown className="h-4 w-4" />
+              Export บิล
+            </Button>
           </div>
         </CardContent>
       </Card>
