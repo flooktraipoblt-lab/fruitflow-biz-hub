@@ -84,12 +84,22 @@ export default function Bills() {
   const { data: rows = [], isLoading, refetch } = useQuery({
     queryKey: ["bills"],
     queryFn: async (): Promise<BillRow[]> => {
-      const { data, error } = await (supabase as any)
-        .from("bills")
-        .select("*")
-        .order("bill_date", { ascending: false });
-      if (error) throw error;
-      return (data ?? []).map((d: any) => ({
+      const pageSize = 1000;
+      let from = 0;
+      const all: any[] = [];
+      while (true) {
+        const { data, error } = await (supabase as any)
+          .from("bills")
+          .select("*")
+          .order("bill_date", { ascending: false })
+          .range(from, from + pageSize - 1);
+        if (error) throw error;
+        const batch = data ?? [];
+        all.push(...batch);
+        if (batch.length < pageSize) break;
+        from += pageSize;
+      }
+      return all.map((d: any) => ({
         id: d.id,
         date: new Date(d.bill_date),
         type: (d.type as "buy" | "sell") ?? "sell",
