@@ -336,14 +336,14 @@ export default function EmployeeProfile() {
         <Card className="mb-6 overflow-hidden border-0 shadow-lg">
           <div className="h-28 bg-gradient-to-r from-primary/80 via-primary to-primary/60" />
           <CardContent className="relative pt-0 pb-6">
-            <div className="flex flex-col md:flex-row md:items-end gap-4 -mt-14">
+            <div className="-mt-14">
               <Avatar className="w-28 h-28 ring-4 ring-background shadow-xl">
                 <AvatarImage src={employee.profile_image_url} alt={employee.name} />
                 <AvatarFallback className="bg-muted">
                   <User className="w-14 h-14 text-muted-foreground" />
                 </AvatarFallback>
               </Avatar>
-              <div className="flex-1 md:pb-2">
+              <div className="mt-4">
                 <h1 className="text-2xl md:text-3xl font-bold text-foreground">{employee.name}</h1>
                 <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-muted-foreground">
                   {employee.phone && (
