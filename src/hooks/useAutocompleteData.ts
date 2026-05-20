@@ -72,11 +72,22 @@ export function useAutocompleteData(): AutocompleteDataHook {
     const fetchItems = async () => {
       setLoadingItems(true);
       try {
-        const { data } = await supabase
-          .from("bill_items")
-          .select("name")
-          .order("name");
-        setItemNames(Array.from(new Set((data || []).map(r => r.name).filter(Boolean))));
+        const pageSize = 1000;
+        let from = 0;
+        const names = new Set<string>();
+        while (true) {
+          const { data, error } = await supabase
+            .from("bill_items")
+            .select("name")
+            .order("name")
+            .range(from, from + pageSize - 1);
+          if (error) throw error;
+          const batch = data || [];
+          batch.forEach((r: any) => r.name && names.add(r.name));
+          if (batch.length < pageSize) break;
+          from += pageSize;
+        }
+        setItemNames(Array.from(names));
       } catch (error) {
         console.error("Error fetching items:", error);
       } finally {
