@@ -8,7 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Calendar as CalendarIcon, Printer, Pencil, Trash2, MessageCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { Calendar as CalendarIcon, Printer, Pencil, Trash2, MessageCircle, ChevronDown, ChevronUp, FileDown } from "lucide-react";
 import { useMemo, useState, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
@@ -44,6 +44,8 @@ export default function Bills() {
   const [expandedInstallments, setExpandedInstallments] = useState<Record<string, boolean>>({});
   const [isSendingLine, setIsSendingLine] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [printAllOpen, setPrintAllOpen] = useState(false);
+  const [printRange, setPrintRange] = useState<{ from?: Date; to?: Date }>({});
   const { toast } = useToast();
   const navigate = useNavigate();
   const { session } = useAuthData();
@@ -581,6 +583,17 @@ export default function Bills() {
               type="bills" 
               onExport={() => {}} 
             />
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={() => {
+                setPrintRange({ from: range.from, to: range.to });
+                setPrintAllOpen(true);
+              }}
+            >
+              <Printer className="h-4 w-4" />
+              พิมพ์ทั้งหมด
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -781,6 +794,64 @@ export default function Bills() {
           onSuccess={refetch}
         />
       )}
+
+      <Dialog open={printAllOpen} onOpenChange={setPrintAllOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>พิมพ์บิลทั้งหมด</DialogTitle>
+            <DialogDescription>เลือกช่วงวันที่ที่ต้องการพิมพ์</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid gap-2">
+              <Label>ระหว่างวันที่</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="justify-start">
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {printRange.from ? (
+                      <span>
+                        {printRange.from.toLocaleDateString()} - {printRange.to?.toLocaleDateString() ?? "ปัจจุบัน"}
+                      </span>
+                    ) : (
+                      <span>เลือกช่วงวันที่</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="range"
+                    selected={printRange as any}
+                    onSelect={(v: any) => setPrintRange(v ?? {})}
+                    numberOfMonths={2}
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPrintAllOpen(false)}>ยกเลิก</Button>
+            <Button
+              onClick={() => {
+                if (!printRange.from) {
+                  toast({ title: "กรุณาเลือกวันที่", variant: "destructive" });
+                  return;
+                }
+                const from = new Date(printRange.from);
+                from.setHours(0, 0, 0, 0);
+                const to = new Date(printRange.to ?? printRange.from);
+                to.setHours(23, 59, 59, 999);
+                const url = `/print-bills?fromDate=${from.toISOString()}&toDate=${to.toISOString()}`;
+                window.open(url, "_blank", "noopener,noreferrer");
+                setPrintAllOpen(false);
+              }}
+            >
+              <Printer className="mr-2 h-4 w-4" />
+              พิมพ์
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Pagination */}
       {totalPages > 1 && (
