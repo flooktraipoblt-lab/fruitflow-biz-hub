@@ -8,7 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Calendar as CalendarIcon, Printer, Pencil, Trash2, MessageCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { Calendar as CalendarIcon, Printer, Pencil, Trash2, MessageCircle, ChevronDown, ChevronUp, FileDown } from "lucide-react";
 import { useMemo, useState, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
@@ -44,6 +44,8 @@ export default function Bills() {
   const [expandedInstallments, setExpandedInstallments] = useState<Record<string, boolean>>({});
   const [isSendingLine, setIsSendingLine] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [printAllOpen, setPrintAllOpen] = useState(false);
+  const [printRange, setPrintRange] = useState<{ from?: Date; to?: Date }>({});
   const { toast } = useToast();
   const navigate = useNavigate();
   const { session } = useAuthData();
@@ -581,6 +583,17 @@ export default function Bills() {
               type="bills" 
               onExport={() => {}} 
             />
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={() => {
+                setPrintRange({ from: range.from, to: range.to });
+                setPrintAllOpen(true);
+              }}
+            >
+              <Printer className="h-4 w-4" />
+              พิมพ์ทั้งหมด
+            </Button>
           </div>
         </CardContent>
       </Card>
