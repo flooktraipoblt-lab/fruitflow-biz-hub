@@ -46,6 +46,7 @@ export default function Bills() {
   const [currentPage, setCurrentPage] = useState(1);
   const [printAllOpen, setPrintAllOpen] = useState(false);
   const [printRange, setPrintRange] = useState<{ from?: Date; to?: Date }>({});
+  const [printType, setPrintType] = useState<"all" | "buy" | "sell">("all");
   const { toast } = useToast();
   const navigate = useNavigate();
   const { session } = useAuthData();
@@ -588,6 +589,7 @@ export default function Bills() {
               className="gap-2"
               onClick={() => {
                 setPrintRange({ from: range.from, to: range.to });
+                setPrintType(type);
                 setPrintAllOpen(true);
               }}
             >
@@ -828,6 +830,19 @@ export default function Bills() {
                 </PopoverContent>
               </Popover>
             </div>
+            <div className="grid gap-2">
+              <Label>ประเภทบิล</Label>
+              <Select value={printType} onValueChange={(v: any) => setPrintType(v)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="z-50 bg-background">
+                  <SelectItem value="all">ทั้งหมด</SelectItem>
+                  <SelectItem value="buy">บิลซื้อ</SelectItem>
+                  <SelectItem value="sell">บิลขาย</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setPrintAllOpen(false)}>ยกเลิก</Button>
@@ -841,7 +856,12 @@ export default function Bills() {
                 from.setHours(0, 0, 0, 0);
                 const to = new Date(printRange.to ?? printRange.from);
                 to.setHours(23, 59, 59, 999);
-                const url = `/print-bills?fromDate=${from.toISOString()}&toDate=${to.toISOString()}`;
+                const params = new URLSearchParams({
+                  fromDate: from.toISOString(),
+                  toDate: to.toISOString(),
+                });
+                if (printType !== "all") params.set("type", printType);
+                const url = `/print-bills?${params.toString()}`;
                 window.open(url, "_blank", "noopener,noreferrer");
                 setPrintAllOpen(false);
               }}
