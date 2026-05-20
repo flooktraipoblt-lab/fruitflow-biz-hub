@@ -578,24 +578,6 @@ export default function Bills() {
           <div className="lg:col-span-5 flex items-center gap-2">
             <Button onClick={() => refetch()}>ค้นหา</Button>
             <Button variant="secondary" onClick={() => { setQ(""); setType("all"); setStatus("all"); setRange({}); }}>รีเซ็ตตัวกรอง</Button>
-            <FilteredExportButton 
-              data={filtered} 
-              filename="bills.csv" 
-              type="bills" 
-              onExport={() => {}} 
-            />
-            <Button
-              variant="outline"
-              className="gap-2"
-              onClick={() => {
-                setPrintRange({ from: range.from, to: range.to });
-                setPrintType(type);
-                setPrintAllOpen(true);
-              }}
-            >
-              <Printer className="h-4 w-4" />
-              พิมพ์ทั้งหมด
-            </Button>
           </div>
         </CardContent>
       </Card>
