@@ -1,5 +1,5 @@
 import { Helmet } from "react-helmet-async";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Autocomplete } from "@/components/ui/autocomplete";
 import { useAutocompleteData } from "@/hooks/useAutocompleteData";
 import { Button } from "@/components/ui/button";
@@ -20,7 +20,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Search, User, Phone, Tags as TagsIcon, Pencil, Trash2, Save, Plus, AlertTriangle } from "lucide-react";
+import { Search, User, Pencil, Trash2, Save, Plus, AlertTriangle, Users, UserPlus, ChevronLeft, ChevronRight } from "lucide-react";
 import { LoadingTable } from "@/components/common/LoadingTable";
 
 interface Customer {
@@ -48,18 +48,39 @@ export default function Customers() {
   const { data: customers = [], isLoading, refetch } = useQuery<Customer[]>({
     queryKey: ["customers"],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("customers")
-        .select("id, name, phone, tags, note, created_at")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return (data ?? []) as Customer[];
+      // Paginated fetch to bypass Supabase 1000-row default
+      const pageSize = 1000;
+      let from = 0;
+      const all: Customer[] = [];
+      while (true) {
+        const { data, error } = await (supabase as any)
+          .from("customers")
+          .select("id, name, phone, tags, note, created_at")
+          .order("created_at", { ascending: false })
+          .range(from, from + pageSize - 1);
+        if (error) throw error;
+        const batch = (data ?? []) as Customer[];
+        all.push(...batch);
+        if (batch.length < pageSize) break;
+        from += pageSize;
+      }
+      return all;
     },
   });
 
-  const filtered = useMemo(() => customers.filter(c =>
+  // Deduplicate by name + phone (case-insensitive), keeping the most recent record
+  const uniqueCustomers = useMemo(() => {
+    const seen = new Map<string, Customer>();
+    for (const c of customers) {
+      const key = `${(c.name || "").trim().toLowerCase()}|${(c.phone || "").trim()}`;
+      if (!seen.has(key)) seen.set(key, c);
+    }
+    return Array.from(seen.values());
+  }, [customers]);
+
+  const filtered = useMemo(() => uniqueCustomers.filter(c =>
     (!q || c.name.toLowerCase().includes(q.toLowerCase()) || (c.phone ?? "").includes(q))
-  ), [customers, q]);
+  ), [uniqueCustomers, q]);
 
   // Paginated customers
   const paginatedCustomers = useMemo(() => {
@@ -100,21 +121,45 @@ export default function Customers() {
   });
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6 animate-fade-in p-4 md:p-6 min-h-screen bg-gradient-to-br from-background via-background to-muted/30">
       <Helmet>
         <title>ลูกค้า | Fruit Flow</title>
         <meta name="description" content="รายชื่อลูกค้า พร้อมค้นหา เพิ่ม แก้ไข ลบ" />
         <link rel="canonical" href={`${window.location.origin}/customers`} />
       </Helmet>
-      <h1 className="text-2xl font-bold">ลูกค้า</h1>
 
-      <Card className="smooth-shadow">
-        <CardHeader>
-          <CardTitle>เพิ่มลูกค้า</CardTitle>
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2">
+            <Users className="h-7 w-7 text-primary" />
+            ลูกค้า
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">จัดการรายชื่อลูกค้า เบอร์โทร และแท็กของคุณ</p>
+        </div>
+        <div className="flex gap-3">
+          <Card className="border-0 shadow-sm bg-gradient-to-br from-primary/10 to-primary/5 min-w-[140px]">
+            <CardContent className="p-3 px-4">
+              <p className="text-xs text-muted-foreground">ทั้งหมด</p>
+              <p className="text-2xl font-bold text-primary">{uniqueCustomers.length}</p>
+            </CardContent>
+          </Card>
+          <Card className="border-0 shadow-sm min-w-[140px]">
+            <CardContent className="p-3 px-4">
+              <p className="text-xs text-muted-foreground">ผลการค้นหา</p>
+              <p className="text-2xl font-bold text-foreground">{filtered.length}</p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      <Card className="border-0 shadow-sm">
+        <CardHeader className="border-b bg-muted/30">
+          <CardTitle className="text-base flex items-center gap-2"><UserPlus className="h-4 w-4" />เพิ่มลูกค้าใหม่</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-4 items-end">
           <div className="grid gap-2">
-            <label>ชื่อลูกค้า</label>
+            <label className="text-sm font-medium">ชื่อลูกค้า</label>
             <Autocomplete
               value={name}
               onValueChange={setName}
@@ -124,11 +169,11 @@ export default function Customers() {
             />
           </div>
           <div className="grid gap-2">
-            <label>โทรศัพท์</label>
+            <label className="text-sm font-medium">โทรศัพท์</label>
             <Input placeholder="เช่น: 0801234567" value={phone} onChange={(e)=> setPhone(e.target.value)} />
           </div>
           <div className="grid gap-2">
-            <label>แท็ก (คั่นด้วย ,)</label>
+            <label className="text-sm font-medium">แท็ก (คั่นด้วย ,)</label>
             <Input placeholder="เช่น: ร้านค้า, VIP" value={tagsInput} onChange={(e)=> setTagsInput(e.target.value)} />
           </div>
           <div className="flex gap-2">
@@ -159,24 +204,23 @@ export default function Customers() {
         </CardContent>
       </Card>
 
-      <Card className="smooth-shadow">
-        <CardHeader>
-          <CardTitle>ค้นหาและรายการลูกค้า</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="mb-4 relative">
+      <Card className="border-0 shadow-sm">
+        <CardHeader className="border-b bg-muted/30 flex flex-row items-center justify-between space-y-0">
+          <CardTitle className="text-base flex items-center gap-2"><Users className="h-4 w-4" />รายการลูกค้า</CardTitle>
+          <div className="relative w-full max-w-xs">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input className="pl-9" placeholder="ค้นหาชื่อหรือเบอร์" value={q} onChange={(e)=> setQ(e.target.value)} />
-            <div className="text-xs text-muted-foreground mt-2">พบ {filtered.length} รายการ</div>
+            <Input className="pl-9 h-9" placeholder="ค้นหาชื่อหรือเบอร์" value={q} onChange={(e)=> { setQ(e.target.value); setCurrentPage(1); }} />
           </div>
+        </CardHeader>
+        <CardContent className="p-0">
           <div className="w-full overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>ชื่อ</TableHead>
-                  <TableHead>โทรศัพท์</TableHead>
-                  <TableHead>แท็ก</TableHead>
-                  <TableHead className="text-right">การทำงาน</TableHead>
+                <TableRow className="bg-muted/20 hover:bg-muted/20">
+                  <TableHead className="font-semibold">ชื่อ</TableHead>
+                  <TableHead className="font-semibold">โทรศัพท์</TableHead>
+                  <TableHead className="font-semibold">แท็ก</TableHead>
+                  <TableHead className="text-right font-semibold">การทำงาน</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -188,16 +232,23 @@ export default function Customers() {
                   </TableRow>
                 ) : paginatedCustomers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={4}>ไม่พบข้อมูล</TableCell>
+                    <TableCell colSpan={4} className="text-center py-10 text-muted-foreground">ไม่พบข้อมูล</TableCell>
                   </TableRow>
                 ) : paginatedCustomers.map((c) => (
-                  <TableRow key={c.id}>
-                    <TableCell>
+                  <TableRow key={c.id} className="hover:bg-muted/30 transition-colors">
+                    <TableCell className="font-medium">
                       {editingId === c.id ? (
                         <Input value={editingName} onChange={(e)=> setEditingName(e.target.value)} />
-                      ) : c.name}
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-semibold">
+                            {c.name.charAt(0).toUpperCase()}
+                          </div>
+                          <span>{c.name}</span>
+                        </div>
+                      )}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="text-muted-foreground">
                       {editingId === c.id ? (
                         <Input value={editingPhone} onChange={(e)=> setEditingPhone(e.target.value)} />
                       ) : (c.phone || "-")}
@@ -205,7 +256,7 @@ export default function Customers() {
                     <TableCell className="space-x-1">
                       {Array.isArray(c.tags) && c.tags.length > 0 ? c.tags.map((t, i) => (
                         <Badge key={i} variant="secondary" className="hover-scale">{t}</Badge>
-                      )) : '-'}
+                      )) : <span className="text-muted-foreground">-</span>}
                     </TableCell>
                     <TableCell className="text-right space-x-2">
                       {editingId === c.id ? (
@@ -279,34 +330,32 @@ export default function Customers() {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <Card className="shadow-elegant border-primary/10 bg-card">
-          <CardContent className="py-6">
-            <div className="flex justify-center items-center gap-4">
-              <Button
-                variant="outline"
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage(currentPage - 1)}
-                className="border-primary/20 hover:border-primary/40"
-              >
-                ก่อนหน้า
-              </Button>
-              <div className="flex items-center gap-2">
-                <span className="text-muted-foreground">หน้า</span>
-                <span className="text-lg font-bold text-primary">{currentPage}</span>
-                <span className="text-muted-foreground">จาก</span>
-                <span className="text-lg font-bold text-primary">{totalPages}</span>
-              </div>
-              <Button
-                variant="outline"
-                disabled={currentPage === totalPages}
-                onClick={() => setCurrentPage(currentPage + 1)}
-                className="border-primary/20 hover:border-primary/40"
-              >
-                ถัดไป
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="flex justify-center items-center gap-3 py-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={currentPage === 1}
+            onClick={() => setCurrentPage(currentPage - 1)}
+            className="gap-1"
+          >
+            <ChevronLeft className="h-4 w-4" /> ก่อนหน้า
+          </Button>
+          <div className="text-sm flex items-center gap-1.5">
+            <span className="text-muted-foreground">หน้า</span>
+            <span className="font-bold text-primary">{currentPage}</span>
+            <span className="text-muted-foreground">จาก</span>
+            <span className="font-bold text-primary">{totalPages}</span>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={currentPage === totalPages}
+            onClick={() => setCurrentPage(currentPage + 1)}
+            className="gap-1"
+          >
+            ถัดไป <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
       )}
     </div>
   );
