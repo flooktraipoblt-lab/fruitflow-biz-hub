@@ -46,6 +46,7 @@ export default function Bills() {
   const [currentPage, setCurrentPage] = useState(1);
   const [printAllOpen, setPrintAllOpen] = useState(false);
   const [printRange, setPrintRange] = useState<{ from?: Date; to?: Date }>({});
+  const [printType, setPrintType] = useState<"all" | "buy" | "sell">("all");
   const { toast } = useToast();
   const navigate = useNavigate();
   const { session } = useAuthData();
@@ -588,6 +589,7 @@ export default function Bills() {
               className="gap-2"
               onClick={() => {
                 setPrintRange({ from: range.from, to: range.to });
+                setPrintType(type);
                 setPrintAllOpen(true);
               }}
             >
