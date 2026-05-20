@@ -39,6 +39,7 @@ export default function PrintMultipleBills() {
 
   const fromDate = searchParams.get("fromDate");
   const toDate = searchParams.get("toDate");
+  const typeFilter = searchParams.get("type");
 
   const handlePrint = () => {
     window.print();
@@ -53,12 +54,16 @@ export default function PrintMultipleBills() {
           return;
         }
 
-        const { data: billsData, error: billsError } = await supabase
+        let query = supabase
           .from("bills")
           .select("*")
           .gte("bill_date", fromDate)
           .lte("bill_date", toDate)
           .order("bill_date", { ascending: true });
+        if (typeFilter === "buy" || typeFilter === "sell") {
+          query = query.eq("type", typeFilter);
+        }
+        const { data: billsData, error: billsError } = await query;
 
         if (billsError) throw billsError;
         if (!billsData || billsData.length === 0) {
