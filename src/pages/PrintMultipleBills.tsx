@@ -128,7 +128,7 @@ export default function PrintMultipleBills() {
         <meta name="description" content="หน้าพิมพ์บิลหลายใบ ขนาด A5" />
       </Helmet>
 
-      <div className="flex justify-center print:hidden mb-4 gap-2">
+      <div className="flex justify-center print:hidden no-print mb-4 gap-2">
         <Button onClick={handlePrint}>
           <Printer className="mr-2 h-4 w-4" />
           พิมพ์บิลทั้งหมด ({bills.length} ใบ)
@@ -161,6 +161,7 @@ export default function PrintMultipleBills() {
           page: landscape-page;
         }
         @media print {
+          .no-print { display: none !important; }
           html, body { background: #fff; }
           .bill-page {
             margin: 0;
