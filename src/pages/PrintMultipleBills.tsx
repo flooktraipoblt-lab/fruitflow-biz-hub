@@ -117,8 +117,12 @@ export default function PrintMultipleBills() {
     return <div style={{ padding: 24, color: 'red' }}>{error}</div>;
   }
 
+  const firstBill = bills[0];
+  const firstIsOrange = firstBill && firstBill.type === "sell" && (firstBill.processing_price_kg || firstBill.paper_cost || firstBill.basket_quantity);
+  const rootPageClass = firstBill ? (firstIsOrange ? "root-portrait" : "root-landscape") : "";
+
   return (
-    <div className="animate-fade-in">
+    <div className={`animate-fade-in ${rootPageClass}`}>
       <Helmet>
         <title>พิมพ์บิลหลายใบ | A5 แนวนอน</title>
         <meta name="description" content="หน้าพิมพ์บิลหลายใบ ขนาด A5" />
@@ -138,6 +142,8 @@ export default function PrintMultipleBills() {
         @page { size: A5; margin: 0mm; }
         @page landscape-page { size: A5 landscape; margin: 0mm; }
         @page portrait-page { size: A5 portrait; margin: 0mm; }
+        .root-portrait { page: portrait-page; }
+        .root-landscape { page: landscape-page; }
         :root { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         html, body { background: #f4f4f4; margin: 0; padding: 0; }
         .bill-page {
