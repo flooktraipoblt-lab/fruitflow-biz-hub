@@ -136,6 +136,8 @@ export default function PrintMultipleBills() {
 
       <style>{`
         @page { size: A5; margin: 0mm; }
+        @page landscape-page { size: A5 landscape; margin: 0mm; }
+        @page portrait-page { size: A5 portrait; margin: 0mm; }
         :root { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         html, body { background: #f4f4f4; margin: 0; padding: 0; }
         .bill-page {
@@ -146,11 +148,14 @@ export default function PrintMultipleBills() {
         }
         .bill-page.portrait {
           width: 148mm; height: 210mm; padding: 3mm;
+          page: portrait-page;
         }
         .bill-page.landscape {
           width: 210mm; height: 148mm; padding: 4mm;
+          page: landscape-page;
         }
         @media print {
+          html, body { background: #fff; }
           .bill-page {
             margin: 0;
             border: none;
