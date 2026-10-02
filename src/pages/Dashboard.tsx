@@ -22,7 +22,7 @@ import {
 const money = (n: number) => n.toLocaleString("th-TH", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 const num = (n: number) => n.toLocaleString("th-TH", { maximumFractionDigits: 1 });
 
-type RangeKey = "today" | "7d" | "month";
+type RangeKey = "today" | "7d" | "month" | "6m" | "1y" | "3y" | "5y";
 
 async function fetchAll(build: (from: number, to: number) => any) {
   const out: any[] = [];
@@ -55,7 +55,11 @@ export default function Dashboard() {
     let from: Date;
     if (range === "today") from = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     else if (range === "7d") { from = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6); }
-    else from = new Date(now.getFullYear(), now.getMonth(), 1);
+    else if (range === "month") from = new Date(now.getFullYear(), now.getMonth(), 1);
+    else if (range === "6m") from = new Date(now.getFullYear(), now.getMonth() - 6, now.getDate());
+    else if (range === "1y") from = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+    else if (range === "3y") from = new Date(now.getFullYear() - 3, now.getMonth(), now.getDate());
+    else from = new Date(now.getFullYear() - 5, now.getMonth(), now.getDate());
     const to = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
     return { from, to };
   }, [range]);
@@ -161,17 +165,34 @@ export default function Dashboard() {
   }, [baskets]);
 
   const chartData = useMemo(() => {
-    const days = eachDayOfInterval({ start: rangeDates.from, end: rangeDates.to });
+    const isLong = range === "6m" || range === "1y" || range === "3y" || range === "5y";
+    if (!isLong) {
+      const days = eachDayOfInterval({ start: rangeDates.from, end: rangeDates.to });
+      const map: Record<string, { day: string; buy: number; sell: number }> = {};
+      days.forEach((d) => { const k = format(d, "yyyy-MM-dd"); map[k] = { day: format(d, "dd/MM"), buy: 0, sell: 0 }; });
+      bills.forEach((b: any) => {
+        const k = format(new Date(b.bill_date), "yyyy-MM-dd");
+        if (!map[k]) return;
+        if (b.type === "buy") map[k].buy += Number(b.total || 0);
+        if (b.type === "sell") map[k].sell += Number(b.total || 0);
+      });
+      return Object.values(map);
+    }
+    // ช่วงยาว: รวมเป็นรายเดือน
+    const startM = new Date(rangeDates.from.getFullYear(), rangeDates.from.getMonth(), 1);
+    const endM = new Date(rangeDates.to.getFullYear(), rangeDates.to.getMonth(), 1);
     const map: Record<string, { day: string; buy: number; sell: number }> = {};
-    days.forEach((d) => { const k = format(d, "yyyy-MM-dd"); map[k] = { day: format(d, "dd/MM"), buy: 0, sell: 0 }; });
+    for (const d = new Date(startM); d <= endM; d.setMonth(d.getMonth() + 1)) {
+      map[format(d, "yyyy-MM")] = { day: format(d, "MM/yy"), buy: 0, sell: 0 };
+    }
     bills.forEach((b: any) => {
-      const k = format(new Date(b.bill_date), "yyyy-MM-dd");
+      const k = format(new Date(b.bill_date), "yyyy-MM");
       if (!map[k]) return;
       if (b.type === "buy") map[k].buy += Number(b.total || 0);
       if (b.type === "sell") map[k].sell += Number(b.total || 0);
     });
     return Object.values(map);
-  }, [bills, rangeDates]);
+  }, [bills, rangeDates, range]);
 
   const daysAgo = (d: string) => Math.max(0, Math.floor((Date.now() - new Date(d).getTime()) / 86400000));
 
@@ -194,6 +215,10 @@ export default function Dashboard() {
               <TabsTrigger value="today">วันนี้</TabsTrigger>
               <TabsTrigger value="7d">7 วัน</TabsTrigger>
               <TabsTrigger value="month">เดือนนี้</TabsTrigger>
+              <TabsTrigger value="6m">6 เดือน</TabsTrigger>
+              <TabsTrigger value="1y">1 ปี</TabsTrigger>
+              <TabsTrigger value="3y">3 ปี</TabsTrigger>
+              <TabsTrigger value="5y">5 ปี</TabsTrigger>
             </TabsList>
           </Tabs>
           <Button variant="outline" size="sm" onClick={() => setShowProfit((s) => !s)}>
