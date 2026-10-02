@@ -15,7 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { format, eachDayOfInterval } from "date-fns";
 import {
-  FileText, Receipt, Wallet, ShoppingBasket, Eye, EyeOff, TrendingUp, Scale,
+  FileText, Receipt, Wallet, ShoppingBasket, Eye, EyeOff,
   AlertCircle, ArrowDownLeft, ArrowUpRight, Activity, Users,
 } from "lucide-react";
 
@@ -75,22 +75,6 @@ export default function Dashboard() {
       .order("bill_date", { ascending: false }).range(a, b)),
   });
 
-  const billIds = useMemo(() => bills.map((b: any) => b.id), [bills]);
-
-  const { data: items = [] } = useQuery({
-    queryKey: ["dash-items", billIds],
-    enabled: billIds.length > 0,
-    queryFn: async () => {
-      const out: any[] = [];
-      for (let i = 0; i < billIds.length; i += 200) {
-        const chunk = billIds.slice(i, i + 200);
-        const rows = await fetchAll((a, b) => sb.from("bill_items").select("bill_id, weight").in("bill_id", chunk).range(a, b));
-        out.push(...rows);
-      }
-      return out;
-    },
-  });
-
   const { data: expenses = [] } = useQuery({
     queryKey: ["dash-expenses", fromIso, toIso],
     queryFn: () => fetchAll((a, b) => sb.from("expenses").select("id, date, type, amount")
@@ -119,23 +103,16 @@ export default function Dashboard() {
   });
 
   const m = useMemo(() => {
-    let buy = 0, sell = 0, exp = 0, wIn = 0, wOut = 0;
-    const typeById: Record<string, string> = {};
+    let buy = 0, sell = 0, exp = 0;
     bills.forEach((b: any) => {
-      typeById[b.id] = b.type;
       if (b.type === "buy") buy += Number(b.total || 0);
       if (b.type === "sell") sell += Number(b.total || 0);
-    });
-    items.forEach((it: any) => {
-      const w = Number(it.weight || 0);
-      if (typeById[it.bill_id] === "buy") wIn += w;
-      else if (typeById[it.bill_id] === "sell") wOut += w;
     });
     expenses.forEach((e: any) => (exp += Number(e.amount || 0)));
     const profit = sell - buy - exp;
     const margin = sell > 0 ? (profit / sell) * 100 : 0;
-    return { buy, sell, exp, profit, margin, wIn, wOut };
-  }, [bills, items, expenses]);
+    return { buy, sell, exp, profit, margin };
+  }, [bills, expenses]);
 
   const debt = useMemo(() => {
     let recv = 0, pay = 0, recvN = 0, payN = 0;
@@ -232,23 +209,24 @@ export default function Dashboard() {
 
       {/* KPI cards */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Kpi icon={<TrendingUp className="h-4 w-4" />} title="ซื้อ / ขาย">
+        <Kpi icon={<ArrowDownLeft className="h-4 w-4" />} title="ซื้อ">
+          <div className="flex items-baseline gap-2">
+            <span className="text-xl font-bold">฿{money(m.buy)}</span>
+            <span className="text-sm text-muted-foreground">รวมยอดซื้อ</span>
+          </div>
+          <div className="mt-2 text-sm text-muted-foreground">ค่าใช้จ่าย ฿{money(m.exp)}</div>
+        </Kpi>
+        <Kpi icon={<ArrowUpRight className="h-4 w-4" />} title="ขาย">
           <div className="flex items-baseline gap-2">
             <span className="text-xl font-bold text-primary">฿{money(m.sell)}</span>
-            <span className="text-sm text-muted-foreground">ขาย</span>
+            <span className="text-sm text-muted-foreground">รวมยอดขาย</span>
           </div>
-          <div className="text-sm text-muted-foreground">ซื้อ ฿{money(m.buy)} · ค่าใช้จ่าย ฿{money(m.exp)}</div>
           <div className="mt-2 text-sm">
             กำไรสุทธิ:{" "}
             <span className={`font-semibold ${m.profit >= 0 ? "text-[hsl(var(--positive))]" : "text-destructive"}`}>
               {showProfit ? `฿${money(m.profit)} (${m.margin.toFixed(1)}%)` : "฿ •••••"}
             </span>
           </div>
-        </Kpi>
-        <Kpi icon={<Scale className="h-4 w-4" />} title="ปริมาณผลไม้ (กก.)">
-          <div className="flex items-center gap-2 text-sm"><ArrowDownLeft className="h-4 w-4 text-destructive" />รับเข้า <b className="ml-auto text-lg">{num(m.wIn)}</b></div>
-          <div className="flex items-center gap-2 text-sm"><ArrowUpRight className="h-4 w-4 text-primary" />ส่งออก <b className="ml-auto text-lg">{num(m.wOut)}</b></div>
-          <div className="mt-1 text-xs text-muted-foreground">ส่วนต่าง {num(m.wIn - m.wOut)} กก.</div>
         </Kpi>
         <Kpi icon={<AlertCircle className="h-4 w-4" />} title="หนี้ค้าง (ทั้งหมด)">
           <div className="text-xl font-bold text-destructive">฿{money(debt.recv)}</div>
