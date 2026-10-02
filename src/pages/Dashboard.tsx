@@ -2,292 +2,346 @@ import { Helmet } from "react-helmet-async";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { ExportButton } from "@/components/common/ExportButton";
+import { Badge } from "@/components/ui/badge";
 import DigitalClock from "@/components/common/DigitalClock";
 import Mailbox from "@/components/common/Mailbox";
 import { AttendanceShortcuts } from "@/components/dashboard/AttendanceShortcuts";
 import { BillsPDFExport } from "@/components/dashboard/BillsPDFExport";
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { 
-  FileText, 
-  Receipt, 
-  Users, 
-  UserSquare2, 
-  Wallet, 
-  ShoppingBasket,
-  TrendingUp,
-  Settings,
-  Clock,
-  CheckCircle2,
-  Eye,
-  EyeOff
+import { format, eachDayOfInterval } from "date-fns";
+import {
+  FileText, Receipt, Wallet, ShoppingBasket, Eye, EyeOff, TrendingUp, Scale,
+  AlertCircle, ArrowDownLeft, ArrowUpRight, Activity, Users,
 } from "lucide-react";
 
-const money = (n: number) => n.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const money = (n: number) => n.toLocaleString("th-TH", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+const num = (n: number) => n.toLocaleString("th-TH", { maximumFractionDigits: 1 });
 
 type RangeKey = "today" | "7d" | "month";
 
+async function fetchAll(build: (from: number, to: number) => any) {
+  const out: any[] = [];
+  let from = 0;
+  const size = 1000;
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const { data, error } = await build(from, from + size - 1);
+    if (error) throw error;
+    out.push(...(data ?? []));
+    if (!data || data.length < size) break;
+    from += size;
+  }
+  return out;
+}
+
+const chartConfig = {
+  buy: { label: "ซื้อ", color: "hsl(var(--destructive))" },
+  sell: { label: "ขาย", color: "hsl(var(--primary))" },
+} satisfies ChartConfig;
+
 export default function Dashboard() {
-  const [range, setRange] = useState<RangeKey>("today");
+  const [range, setRange] = useState<RangeKey>("7d");
   const [showProfit, setShowProfit] = useState(false);
   const navigate = useNavigate();
+  const sb = supabase as any;
 
   const rangeDates = useMemo(() => {
     const now = new Date();
-    let from = new Date(now);
-    if (range === "today") {
-      from = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    } else if (range === "7d") {
-      from.setDate(now.getDate() - 6);
-      from.setHours(0, 0, 0, 0);
-    } else if (range === "month") {
-      from = new Date(now.getFullYear(), now.getMonth(), 1);
-    }
-    return { from, to: now };
+    let from: Date;
+    if (range === "today") from = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    else if (range === "7d") { from = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6); }
+    else from = new Date(now.getFullYear(), now.getMonth(), 1);
+    const to = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    return { from, to };
   }, [range]);
 
+  const fromIso = rangeDates.from.toISOString();
+  const toIso = rangeDates.to.toISOString();
+
   const { data: bills = [] } = useQuery({
-    queryKey: ["dashboard-bills", rangeDates],
+    queryKey: ["dash-bills", fromIso, toIso],
+    queryFn: () => fetchAll((a, b) => sb.from("bills")
+      .select("id, bill_no, bill_date, type, customer, total, status")
+      .gte("bill_date", fromIso).lte("bill_date", toIso)
+      .order("bill_date", { ascending: false }).range(a, b)),
+  });
+
+  const billIds = useMemo(() => bills.map((b: any) => b.id), [bills]);
+
+  const { data: items = [] } = useQuery({
+    queryKey: ["dash-items", billIds],
+    enabled: billIds.length > 0,
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("bills")
-        .select("id, bill_date, type, customer, total, status")
-        .gte("bill_date", rangeDates.from.toISOString())
-        .lte("bill_date", rangeDates.to.toISOString())
-        .order("bill_date", { ascending: false });
-      if (error) throw error;
-      return data ?? [];
+      const out: any[] = [];
+      for (let i = 0; i < billIds.length; i += 200) {
+        const chunk = billIds.slice(i, i + 200);
+        const rows = await fetchAll((a, b) => sb.from("bill_items").select("bill_id, weight").in("bill_id", chunk).range(a, b));
+        out.push(...rows);
+      }
+      return out;
     },
   });
 
   const { data: expenses = [] } = useQuery({
-    queryKey: ["dashboard-expenses", rangeDates],
+    queryKey: ["dash-expenses", fromIso, toIso],
+    queryFn: () => fetchAll((a, b) => sb.from("expenses").select("id, date, type, amount")
+      .gte("date", fromIso).lte("date", toIso).range(a, b)),
+  });
+
+  const { data: dueBills = [] } = useQuery({
+    queryKey: ["dash-due"],
+    queryFn: () => fetchAll((a, b) => sb.from("bills").select("id, bill_no, bill_date, type, customer, total, status")
+      .in("status", ["due", "installment"]).order("bill_date", { ascending: true }).range(a, b)),
+  });
+
+  const { data: baskets = [] } = useQuery({
+    queryKey: ["dash-baskets"],
+    queryFn: () => fetchAll((a, b) => sb.from("baskets").select("customer, quantity, flow, basket_date").range(a, b)),
+  });
+
+  const { data: recent = [] } = useQuery({
+    queryKey: ["dash-recent"],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("expenses")
-        .select("id, date, type, amount")
-        .gte("date", rangeDates.from.toISOString())
-        .lte("date", rangeDates.to.toISOString())
-        .order("date", { ascending: false });
+      const { data, error } = await sb.from("bills").select("id, bill_no, bill_date, type, customer, total, status, created_at")
+        .order("created_at", { ascending: false }).limit(8);
       if (error) throw error;
       return data ?? [];
     },
   });
 
-  const metrics = useMemo(() => {
-    let buy = 0, sell = 0, expenseTotal = 0;
+  const m = useMemo(() => {
+    let buy = 0, sell = 0, exp = 0, wIn = 0, wOut = 0;
+    const typeById: Record<string, string> = {};
     bills.forEach((b: any) => {
-      const t = Number(b.total ?? 0);
-      if (b.type === "buy") buy += t;
-      if (b.type === "sell") sell += t;
+      typeById[b.id] = b.type;
+      if (b.type === "buy") buy += Number(b.total || 0);
+      if (b.type === "sell") sell += Number(b.total || 0);
     });
-    expenses.forEach((e: any) => {
-      expenseTotal += Number(e.amount ?? 0);
+    items.forEach((it: any) => {
+      const w = Number(it.weight || 0);
+      if (typeById[it.bill_id] === "buy") wIn += w;
+      else if (typeById[it.bill_id] === "sell") wOut += w;
     });
-    return { buy, sell, expenses: expenseTotal, profit: sell - buy - expenseTotal };
-  }, [bills, expenses]);
+    expenses.forEach((e: any) => (exp += Number(e.amount || 0)));
+    const profit = sell - buy - exp;
+    const margin = sell > 0 ? (profit / sell) * 100 : 0;
+    return { buy, sell, exp, profit, margin, wIn, wOut };
+  }, [bills, items, expenses]);
+
+  const debt = useMemo(() => {
+    let recv = 0, pay = 0, recvN = 0, payN = 0;
+    dueBills.forEach((b: any) => {
+      if (b.type === "sell") { recv += Number(b.total || 0); recvN++; }
+      else { pay += Number(b.total || 0); payN++; }
+    });
+    const top = [...dueBills].filter((b: any) => b.type === "sell")
+      .sort((a: any, b: any) => Number(b.total) - Number(a.total)).slice(0, 5);
+    return { recv, pay, recvN, payN, top };
+  }, [dueBills]);
+
+  const basketStats = useMemo(() => {
+    const per: Record<string, number> = {};
+    let outToday = 0, inToday = 0;
+    const today = format(new Date(), "yyyy-MM-dd");
+    baskets.forEach((r: any) => {
+      const q = Number(r.quantity || 0);
+      per[r.customer] = (per[r.customer] || 0) + (r.flow === "out" ? q : -q);
+      if (format(new Date(r.basket_date), "yyyy-MM-dd") === today) {
+        if (r.flow === "out") outToday += q; else inToday += q;
+      }
+    });
+    const list = Object.entries(per).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
+    const outstanding = list.reduce((s, [, v]) => s + v, 0);
+    return { outstanding, outToday, inToday, top: list.slice(0, 5) };
+  }, [baskets]);
+
+  const chartData = useMemo(() => {
+    const days = eachDayOfInterval({ start: rangeDates.from, end: rangeDates.to });
+    const map: Record<string, { day: string; buy: number; sell: number }> = {};
+    days.forEach((d) => { const k = format(d, "yyyy-MM-dd"); map[k] = { day: format(d, "dd/MM"), buy: 0, sell: 0 }; });
+    bills.forEach((b: any) => {
+      const k = format(new Date(b.bill_date), "yyyy-MM-dd");
+      if (!map[k]) return;
+      if (b.type === "buy") map[k].buy += Number(b.total || 0);
+      if (b.type === "sell") map[k].sell += Number(b.total || 0);
+    });
+    return Object.values(map);
+  }, [bills, rangeDates]);
+
+  const daysAgo = (d: string) => Math.max(0, Math.floor((Date.now() - new Date(d).getTime()) / 86400000));
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-5 animate-fade-in">
       <Helmet>
         <title>Dashboard | Fruit Flow</title>
-        <meta name="description" content="สรุปรายงาน ซื้อ-ขาย กำไร ลูกค้า และแจ้งเตือนแบบรวดเร็ว" />
-        <link rel="canonical" href={`${window.location.origin}/dashboard`} />
+        <meta name="description" content="ศูนย์ควบคุมหน้างาน ซื้อ-ขาย หนี้ค้าง ตะกร้า และกิจกรรมล่าสุด" />
       </Helmet>
 
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Dashboard</h1>
-        <div className="flex items-center gap-2">
+      {/* Top bar */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold">ศูนย์ควบคุมหน้างาน</h1>
+          <p className="text-sm text-muted-foreground">ข้อมูลจริงจากบิล ค่าใช้จ่าย และตะกร้า</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Tabs value={range} onValueChange={(v) => setRange(v as RangeKey)}>
+            <TabsList>
+              <TabsTrigger value="today">วันนี้</TabsTrigger>
+              <TabsTrigger value="7d">7 วัน</TabsTrigger>
+              <TabsTrigger value="month">เดือนนี้</TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <Button variant="outline" size="sm" onClick={() => setShowProfit((s) => !s)}>
+            {showProfit ? <EyeOff className="h-4 w-4 mr-1" /> : <Eye className="h-4 w-4 mr-1" />}
+            {showProfit ? "ซ่อนกำไร" : "แสดงกำไร"}
+          </Button>
           <Mailbox />
           <DigitalClock />
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <MetricCard title="ยอดซื้อทั้งหมด" value={`฿ ${money(metrics.buy)}`} range={range} onRange={setRange} />
-        <MetricCard title="ยอดขายทั้งหมด" value={`฿ ${money(metrics.sell)}`} range={range} onRange={setRange} />
-        <MetricCard title="ค่าใช้จ่าย" value={`฿ ${money(metrics.expenses)}`} range={range} onRange={setRange} />
-        <MetricCard 
-          title="กำไร" 
-          value={`฿ ${money(metrics.profit)}`} 
-          range={range} 
-          onRange={setRange}
-          isProfit
-          showValue={showProfit}
-          onToggleShow={() => setShowProfit(!showProfit)}
-        />
+      {/* KPI cards */}
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <Kpi icon={<TrendingUp className="h-4 w-4" />} title="ซื้อ / ขาย">
+          <div className="flex items-baseline gap-2">
+            <span className="text-xl font-bold text-primary">฿{money(m.sell)}</span>
+            <span className="text-sm text-muted-foreground">ขาย</span>
+          </div>
+          <div className="text-sm text-muted-foreground">ซื้อ ฿{money(m.buy)} · ค่าใช้จ่าย ฿{money(m.exp)}</div>
+          <div className="mt-2 text-sm">
+            กำไรสุทธิ:{" "}
+            <span className={`font-semibold ${m.profit >= 0 ? "text-[hsl(var(--positive))]" : "text-destructive"}`}>
+              {showProfit ? `฿${money(m.profit)} (${m.margin.toFixed(1)}%)` : "฿ •••••"}
+            </span>
+          </div>
+        </Kpi>
+        <Kpi icon={<Scale className="h-4 w-4" />} title="ปริมาณผลไม้ (กก.)">
+          <div className="flex items-center gap-2 text-sm"><ArrowDownLeft className="h-4 w-4 text-destructive" />รับเข้า <b className="ml-auto text-lg">{num(m.wIn)}</b></div>
+          <div className="flex items-center gap-2 text-sm"><ArrowUpRight className="h-4 w-4 text-primary" />ส่งออก <b className="ml-auto text-lg">{num(m.wOut)}</b></div>
+          <div className="mt-1 text-xs text-muted-foreground">ส่วนต่าง {num(m.wIn - m.wOut)} กก.</div>
+        </Kpi>
+        <Kpi icon={<AlertCircle className="h-4 w-4" />} title="หนี้ค้าง (ทั้งหมด)">
+          <div className="text-xl font-bold text-destructive">฿{money(debt.recv)}</div>
+          <div className="text-sm text-muted-foreground">ลูกค้าค้างจ่าย {debt.recvN} บิล</div>
+          <div className="mt-2 text-sm">ต้องจ่ายสวน: <b>฿{money(debt.pay)}</b> ({debt.payN} บิล)</div>
+        </Kpi>
+        <Kpi icon={<ShoppingBasket className="h-4 w-4" />} title="ตะกร้าค้างข้างนอก">
+          <div className="text-xl font-bold">{num(basketStats.outstanding)} ใบ</div>
+          <div className="text-sm text-muted-foreground">วันนี้ ออก {basketStats.outToday} · คืน {basketStats.inToday}</div>
+        </Kpi>
       </div>
 
-      {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5" />
-            ทางลัดด่วน
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-            <Button
-              variant="outline"
-              className="h-auto flex flex-col items-center gap-2 py-4 hover-scale group"
-              onClick={() => navigate("/create")}
-            >
-              <div className="rounded-full bg-primary/10 p-3 group-hover:bg-primary/20 transition-colors">
-                <FileText className="h-6 w-6 text-primary" />
-              </div>
-              <span className="text-sm font-medium">สร้างบิล</span>
-            </Button>
+      <div className="grid gap-5 lg:grid-cols-3">
+        {/* Left 2/3 */}
+        <div className="space-y-5 lg:col-span-2">
+          <Card>
+            <CardHeader className="pb-2"><CardTitle className="text-base">แนวโน้มยอดซื้อ vs ยอดขายรายวัน</CardTitle></CardHeader>
+            <CardContent>
+              <ChartContainer config={chartConfig} className="h-[260px] w-full">
+                <BarChart data={chartData}>
+                  <CartesianGrid vertical={false} />
+                  <XAxis dataKey="day" tickLine={false} axisLine={false} fontSize={12} />
+                  <YAxis tickLine={false} axisLine={false} fontSize={12} width={60}
+                    tickFormatter={(v) => (v >= 1000 ? `${Math.round(v / 1000)}k` : v)} />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Bar dataKey="buy" fill="var(--color-buy)" radius={4} />
+                  <Bar dataKey="sell" fill="var(--color-sell)" radius={4} />
+                </BarChart>
+              </ChartContainer>
+            </CardContent>
+          </Card>
 
-            <Button
-              variant="outline"
-              className="h-auto flex flex-col items-center gap-2 py-4 hover-scale group"
-              onClick={() => navigate("/bills")}
-            >
-              <div className="rounded-full bg-[hsl(var(--brand-3))]/10 p-3 group-hover:bg-[hsl(var(--brand-3))]/20 transition-colors">
-                <Receipt className="h-6 w-6 text-[hsl(var(--brand-3))]" />
-              </div>
-              <span className="text-sm font-medium">รายการบิล</span>
-            </Button>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-base">ลูกค้าค้างชำระยอดสูงสุด</CardTitle>
+              <Button variant="ghost" size="sm" onClick={() => navigate("/bills?status=due")}>ดูทั้งหมด</Button>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {debt.top.length === 0 && <p className="text-sm text-muted-foreground">ไม่มีบิลค้างชำระ</p>}
+              {debt.top.map((b: any) => (
+                <button key={b.id} onClick={() => navigate(`/print/${b.id}`)}
+                  className="flex w-full items-center justify-between rounded-md border p-3 text-left transition-colors hover:bg-muted/50">
+                  <div>
+                    <div className="font-medium">{b.customer}</div>
+                    <div className="text-xs text-muted-foreground">{b.bill_no} · ค้าง {daysAgo(b.bill_date)} วัน</div>
+                  </div>
+                  <div className="font-semibold text-destructive">฿{money(Number(b.total))}</div>
+                </button>
+              ))}
+            </CardContent>
+          </Card>
 
-            <Button
-              variant="outline"
-              className="h-auto flex flex-col items-center gap-2 py-4 hover-scale group"
-              onClick={() => navigate("/bills?status=due")}
-            >
-              <div className="rounded-full bg-destructive/10 p-3 group-hover:bg-destructive/20 transition-colors">
-                <Clock className="h-6 w-6 text-destructive" />
-              </div>
-              <span className="text-sm font-medium">ค้างจ่าย</span>
-            </Button>
+          <Card>
+            <CardHeader className="pb-2"><CardTitle className="text-base">ทางลัด</CardTitle></CardHeader>
+            <CardContent className="flex flex-wrap gap-2">
+              <Button onClick={() => navigate("/create")}><FileText className="h-4 w-4 mr-1" />สร้างบิล</Button>
+              <Button variant="outline" onClick={() => navigate("/bills")}><Receipt className="h-4 w-4 mr-1" />รายการบิล</Button>
+              <Button variant="outline" onClick={() => navigate("/baskets")}><ShoppingBasket className="h-4 w-4 mr-1" />ตะกร้า</Button>
+              <Button variant="outline" onClick={() => navigate("/expenses")}><Wallet className="h-4 w-4 mr-1" />ค่าใช้จ่าย</Button>
+              <Button variant="outline" onClick={() => navigate("/customers")}><Users className="h-4 w-4 mr-1" />ลูกค้า</Button>
+              <BillsPDFExport />
+            </CardContent>
+          </Card>
+        </div>
 
-            <Button
-              variant="outline"
-              className="h-auto flex flex-col items-center gap-2 py-4 hover-scale group"
-              onClick={() => navigate("/bills?status=paid")}
-            >
-              <div className="rounded-full bg-[hsl(var(--positive))]/10 p-3 group-hover:bg-[hsl(var(--positive))]/20 transition-colors">
-                <CheckCircle2 className="h-6 w-6 text-[hsl(var(--positive))]" />
-              </div>
-              <span className="text-sm font-medium">จ่ายแล้ว</span>
-            </Button>
+        {/* Right 1/3 */}
+        <div className="space-y-5">
+          <Card>
+            <CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-base"><Activity className="h-4 w-4" />บิลล่าสุด</CardTitle></CardHeader>
+            <CardContent className="space-y-1">
+              {recent.map((b: any) => (
+                <button key={b.id} onClick={() => navigate(`/print/${b.id}`)}
+                  className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left hover:bg-muted/50">
+                  <Badge variant={b.type === "sell" ? "default" : "secondary"} className="shrink-0">{b.type === "sell" ? "ขาย" : "ซื้อ"}</Badge>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-medium">{b.customer}</div>
+                    <div className="text-xs text-muted-foreground">{b.bill_no} · {format(new Date(b.bill_date), "dd/MM HH:mm")}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm font-semibold">฿{money(Number(b.total))}</div>
+                    <div className={`text-xs ${b.status === "paid" ? "text-[hsl(var(--positive))]" : "text-destructive"}`}>
+                      {b.status === "paid" ? "จ่ายแล้ว" : b.status === "installment" ? "ผ่อน" : "ค้าง"}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </CardContent>
+          </Card>
 
-            <Button
-              variant="outline"
-              className="h-auto flex flex-col items-center gap-2 py-4 hover-scale group"
-              onClick={() => navigate("/customers")}
-            >
-              <div className="rounded-full bg-[hsl(var(--positive))]/10 p-3 group-hover:bg-[hsl(var(--positive))]/20 transition-colors">
-                <Users className="h-6 w-6 text-[hsl(var(--positive))]" />
-              </div>
-              <span className="text-sm font-medium">ลูกค้า</span>
-            </Button>
+          <Card>
+            <CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-base"><ShoppingBasket className="h-4 w-4" />ค้างตะกร้ามากสุด</CardTitle></CardHeader>
+            <CardContent className="space-y-2">
+              {basketStats.top.length === 0 && <p className="text-sm text-muted-foreground">ไม่มีตะกร้าค้าง</p>}
+              {basketStats.top.map(([name, q]) => (
+                <div key={name} className="flex items-center justify-between text-sm">
+                  <span className="truncate">{name}</span><b>{q} ใบ</b>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
 
-            <Button
-              variant="outline"
-              className="h-auto flex flex-col items-center gap-2 py-4 hover-scale group"
-              onClick={() => navigate("/employees")}
-            >
-              <div className="rounded-full bg-[hsl(var(--brand-2))]/10 p-3 group-hover:bg-[hsl(var(--brand-2))]/20 transition-colors">
-                <UserSquare2 className="h-6 w-6 text-[hsl(var(--brand-2))]" />
-              </div>
-              <span className="text-sm font-medium">พนักงาน</span>
-            </Button>
-
-            <Button
-              variant="outline"
-              className="h-auto flex flex-col items-center gap-2 py-4 hover-scale group"
-              onClick={() => navigate("/expenses")}
-            >
-              <div className="rounded-full bg-destructive/10 p-3 group-hover:bg-destructive/20 transition-colors">
-                <Wallet className="h-6 w-6 text-destructive" />
-              </div>
-              <span className="text-sm font-medium">ค่าใช้จ่าย</span>
-            </Button>
-
-            <Button
-              variant="outline"
-              className="h-auto flex flex-col items-center gap-2 py-4 hover-scale group"
-              onClick={() => navigate("/baskets")}
-            >
-              <div className="rounded-full bg-[hsl(var(--accent))]/10 p-3 group-hover:bg-[hsl(var(--accent))]/20 transition-colors">
-                <ShoppingBasket className="h-6 w-6 text-[hsl(var(--accent))]" />
-              </div>
-              <span className="text-sm font-medium">ตะกร้า</span>
-            </Button>
-
-            <Button
-              variant="outline"
-              className="h-auto flex flex-col items-center gap-2 py-4 hover-scale group"
-              onClick={() => navigate("/admin/users")}
-            >
-              <div className="rounded-full bg-muted p-3 group-hover:bg-muted/80 transition-colors">
-                <Settings className="h-6 w-6" />
-              </div>
-              <span className="text-sm font-medium">จัดการผู้ใช้</span>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Export Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>เครื่องมือส่งออก</CardTitle>
-        </CardHeader>
-        <CardContent className="flex gap-2 flex-wrap">
-          <AttendanceShortcuts />
-          <BillsPDFExport />
-        </CardContent>
-      </Card>
+          <Card>
+            <CardHeader className="pb-2"><CardTitle className="text-base">พนักงาน & ลงเวลา</CardTitle></CardHeader>
+            <CardContent className="flex flex-wrap gap-2"><AttendanceShortcuts /></CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }
 
-interface MetricCardProps {
-  title: string;
-  value: string;
-  range: RangeKey;
-  onRange: (r: RangeKey) => void;
-  isProfit?: boolean;
-  showValue?: boolean;
-  onToggleShow?: () => void;
-}
-
-function MetricCard({ title, value, range, onRange, isProfit, showValue = true, onToggleShow }: MetricCardProps) {
-  const displayValue = isProfit && !showValue ? "฿ •••••" : value;
-  
+function Kpi({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <div className="flex items-center gap-2">
-          {isProfit && onToggleShow && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={onToggleShow}
-            >
-              {showValue ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            </Button>
-          )}
-          <ExportButton data={[value]} filename={`${title}.txt`} />
-        </div>
+      <CardHeader className="flex flex-row items-center gap-2 space-y-0 pb-2 text-muted-foreground">
+        {icon}<CardTitle className="text-sm font-medium">{title}</CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold">{displayValue}</div>
-        <Tabs value={range} onValueChange={(v) => onRange(v as RangeKey)} className="mt-3">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="today">วันนี้</TabsTrigger>
-            <TabsTrigger value="7d">7 วัน</TabsTrigger>
-            <TabsTrigger value="month">เดือนนี้</TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </CardContent>
+      <CardContent className="space-y-0.5">{children}</CardContent>
     </Card>
   );
 }
