@@ -40,6 +40,7 @@ export default function PrintMultipleBills() {
   const fromDate = searchParams.get("fromDate");
   const toDate = searchParams.get("toDate");
   const typeFilter = searchParams.get("type");
+  const orientationFilter = searchParams.get("orientation") === "portrait" ? "portrait" : "landscape";
 
   const handlePrint = () => {
     window.print();
@@ -66,17 +67,22 @@ export default function PrintMultipleBills() {
         const { data: billsData, error: billsError } = await query;
 
         if (billsError) throw billsError;
-        if (!billsData || billsData.length === 0) {
+        const filteredBills = (billsData || []).filter((bill) => {
+          const isOrangeBill = bill.type === "sell" && Boolean(bill.processing_price_kg || bill.paper_cost || bill.basket_quantity);
+          return orientationFilter === "portrait" ? isOrangeBill : !isOrangeBill;
+        });
+
+        if (filteredBills.length === 0) {
           setError("ไม่พบบิลในช่วงเวลาที่เลือก");
           setLoading(false);
           return;
         }
 
-        setBills(billsData);
+        setBills(filteredBills);
 
         // Fetch items for all bills
         const itemsMap = new Map<string, BillItem[]>();
-        for (const bill of billsData) {
+        for (const bill of filteredBills) {
           const { data: items, error: itemsError } = await supabase
             .from("bill_items")
             .select("name, qty, weight, fraction, price")
@@ -101,7 +107,7 @@ export default function PrintMultipleBills() {
       }
     };
     load();
-  }, [fromDate, toDate]);
+  }, [fromDate, toDate, typeFilter, orientationFilter]);
 
   useEffect(() => {
     if (!loading && bills.length > 0) {
@@ -117,14 +123,10 @@ export default function PrintMultipleBills() {
     return <div style={{ padding: 24, color: 'red' }}>{error}</div>;
   }
 
-  const firstBill = bills[0];
-  const firstIsOrange = firstBill && firstBill.type === "sell" && (firstBill.processing_price_kg || firstBill.paper_cost || firstBill.basket_quantity);
-  const rootPageClass = firstBill ? (firstIsOrange ? "root-portrait" : "root-landscape") : "";
-
   return (
-    <div className={`animate-fade-in ${rootPageClass}`}>
+    <div className="animate-fade-in">
       <Helmet>
-        <title>พิมพ์บิลหลายใบ | A5 แนวนอน</title>
+        <title>พิมพ์บิลหลายใบ | A5 {orientationFilter === "portrait" ? "แนวตั้ง" : "แนวนอน"}</title>
         <meta name="description" content="หน้าพิมพ์บิลหลายใบ ขนาด A5" />
       </Helmet>
 
@@ -139,11 +141,7 @@ export default function PrintMultipleBills() {
       </div>
 
       <style>{`
-        @page { size: A5; margin: 0mm; }
-        @page landscape-page { size: A5 landscape; margin: 0mm; }
-        @page portrait-page { size: A5 portrait; margin: 0mm; }
-        .root-portrait { page: portrait-page; }
-        .root-landscape { page: landscape-page; }
+        @page { size: A5 ${orientationFilter}; margin: 0mm; }
         :root { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         html, body { background: #f4f4f4; margin: 0; padding: 0; }
         .bill-page {
@@ -154,11 +152,9 @@ export default function PrintMultipleBills() {
         }
         .bill-page.portrait {
           width: 148mm; height: 210mm; padding: 3mm;
-          page: portrait-page;
         }
         .bill-page.landscape {
           width: 210mm; height: 148mm; padding: 4mm;
-          page: landscape-page;
         }
         @media print {
           .no-print { display: none !important; }

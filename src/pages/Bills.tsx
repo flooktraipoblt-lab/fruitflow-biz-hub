@@ -47,6 +47,7 @@ export default function Bills() {
   const [printAllOpen, setPrintAllOpen] = useState(false);
   const [printRange, setPrintRange] = useState<{ from?: Date; to?: Date }>({});
   const [printType, setPrintType] = useState<"all" | "buy" | "sell">("all");
+  const [printOrientation, setPrintOrientation] = useState<"portrait" | "landscape">("landscape");
   const { toast } = useToast();
   const navigate = useNavigate();
   const { session } = useAuthData();
@@ -837,6 +838,18 @@ export default function Bills() {
                 </SelectContent>
               </Select>
             </div>
+            <div className="grid gap-2">
+              <Label>รูปแบบการพิมพ์</Label>
+              <Select value={printOrientation} onValueChange={(value: "portrait" | "landscape") => setPrintOrientation(value)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="z-50 bg-background">
+                  <SelectItem value="landscape">แนวนอน (บิลปกติ)</SelectItem>
+                  <SelectItem value="portrait">แนวตั้ง (บิลส้ม)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setPrintAllOpen(false)}>ยกเลิก</Button>
@@ -855,6 +868,7 @@ export default function Bills() {
                   toDate: to.toISOString(),
                 });
                 if (printType !== "all") params.set("type", printType);
+                params.set("orientation", printOrientation);
                 const url = `/print-bills?${params.toString()}`;
                 window.open(url, "_blank", "noopener,noreferrer");
                 setPrintAllOpen(false);
