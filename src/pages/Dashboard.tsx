@@ -75,9 +75,6 @@ export default function Dashboard() {
       .order("bill_date", { ascending: false }).range(a, b)),
   });
 
-  const billIds = useMemo(() => bills.map((b: any) => b.id), [bills]);
-
-
   const { data: expenses = [] } = useQuery({
     queryKey: ["dash-expenses", fromIso, toIso],
     queryFn: () => fetchAll((a, b) => sb.from("expenses").select("id, date, type, amount")
@@ -106,23 +103,16 @@ export default function Dashboard() {
   });
 
   const m = useMemo(() => {
-    let buy = 0, sell = 0, exp = 0, wIn = 0, wOut = 0;
-    const typeById: Record<string, string> = {};
+    let buy = 0, sell = 0, exp = 0;
     bills.forEach((b: any) => {
-      typeById[b.id] = b.type;
       if (b.type === "buy") buy += Number(b.total || 0);
       if (b.type === "sell") sell += Number(b.total || 0);
-    });
-    items.forEach((it: any) => {
-      const w = Number(it.weight || 0);
-      if (typeById[it.bill_id] === "buy") wIn += w;
-      else if (typeById[it.bill_id] === "sell") wOut += w;
     });
     expenses.forEach((e: any) => (exp += Number(e.amount || 0)));
     const profit = sell - buy - exp;
     const margin = sell > 0 ? (profit / sell) * 100 : 0;
-    return { buy, sell, exp, profit, margin, wIn, wOut };
-  }, [bills, items, expenses]);
+    return { buy, sell, exp, profit, margin };
+  }, [bills, expenses]);
 
   const debt = useMemo(() => {
     let recv = 0, pay = 0, recvN = 0, payN = 0;
