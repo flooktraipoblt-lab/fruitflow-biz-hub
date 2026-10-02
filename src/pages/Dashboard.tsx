@@ -15,8 +15,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { format, eachDayOfInterval } from "date-fns";
 import {
-  FileText, Receipt, Wallet, ShoppingBasket, Eye, EyeOff, TrendingUp,
-  AlertCircle, Activity, Users,
+  FileText, Receipt, Wallet, ShoppingBasket, Eye, EyeOff,
+  AlertCircle, ArrowDownLeft, ArrowUpRight, Activity, Users,
 } from "lucide-react";
 
 const money = (n: number) => n.toLocaleString("th-TH", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
