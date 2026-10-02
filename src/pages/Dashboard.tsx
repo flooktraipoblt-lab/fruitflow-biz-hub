@@ -209,23 +209,24 @@ export default function Dashboard() {
 
       {/* KPI cards */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Kpi icon={<TrendingUp className="h-4 w-4" />} title="ซื้อ / ขาย">
+        <Kpi icon={<ArrowDownLeft className="h-4 w-4" />} title="ซื้อ">
+          <div className="flex items-baseline gap-2">
+            <span className="text-xl font-bold">฿{money(m.buy)}</span>
+            <span className="text-sm text-muted-foreground">รวมยอดซื้อ</span>
+          </div>
+          <div className="mt-2 text-sm text-muted-foreground">ค่าใช้จ่าย ฿{money(m.exp)}</div>
+        </Kpi>
+        <Kpi icon={<ArrowUpRight className="h-4 w-4" />} title="ขาย">
           <div className="flex items-baseline gap-2">
             <span className="text-xl font-bold text-primary">฿{money(m.sell)}</span>
-            <span className="text-sm text-muted-foreground">ขาย</span>
+            <span className="text-sm text-muted-foreground">รวมยอดขาย</span>
           </div>
-          <div className="text-sm text-muted-foreground">ซื้อ ฿{money(m.buy)} · ค่าใช้จ่าย ฿{money(m.exp)}</div>
           <div className="mt-2 text-sm">
             กำไรสุทธิ:{" "}
             <span className={`font-semibold ${m.profit >= 0 ? "text-[hsl(var(--positive))]" : "text-destructive"}`}>
               {showProfit ? `฿${money(m.profit)} (${m.margin.toFixed(1)}%)` : "฿ •••••"}
             </span>
           </div>
-        </Kpi>
-        <Kpi icon={<Scale className="h-4 w-4" />} title="ปริมาณผลไม้ (กก.)">
-          <div className="flex items-center gap-2 text-sm"><ArrowDownLeft className="h-4 w-4 text-destructive" />รับเข้า <b className="ml-auto text-lg">{num(m.wIn)}</b></div>
-          <div className="flex items-center gap-2 text-sm"><ArrowUpRight className="h-4 w-4 text-primary" />ส่งออก <b className="ml-auto text-lg">{num(m.wOut)}</b></div>
-          <div className="mt-1 text-xs text-muted-foreground">ส่วนต่าง {num(m.wIn - m.wOut)} กก.</div>
         </Kpi>
         <Kpi icon={<AlertCircle className="h-4 w-4" />} title="หนี้ค้าง (ทั้งหมด)">
           <div className="text-xl font-bold text-destructive">฿{money(debt.recv)}</div>
