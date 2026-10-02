@@ -158,78 +158,40 @@ export default function PrintInvoice() {
           setLoading(false);
           return;
         }
-        // Try new invoices tables first; gracefully fallback if not present
-        const [{ data: inv, error: invErr }, { data: itms, error: itemsErr }] = await Promise.all([
+        // รอให้ระบบโหลดการเข้าสู่ระบบก่อน (หน้าพิมพ์เปิดในแท็บใหม่)
+        const { data: sess } = await supabase.auth.getSession();
+        if (!sess?.session) {
+          setError("กรุณาเข้าสู่ระบบในแท็บนี้ก่อนพิมพ์บิล");
+          return;
+        }
+        const [{ data: bill, error: billErr }, { data: billItems, error: biErr }] = await Promise.all([
+          (supabase as any).from("bills").select("*").eq("id", invoiceId).maybeSingle(),
           (supabase as any)
-            .from("invoices")
-            .select("*")
-            .eq("id", invoiceId)
-            .maybeSingle(),
-          (supabase as any)
-            .from("invoice_items")
+            .from("bill_items")
             .select("name, qty, weight, fraction, price")
-            .eq("invoice_id", invoiceId)
+            .eq("bill_id", invoiceId)
             .order("created_at", { ascending: true }),
         ]);
-
-        // Helper: check if error indicates table missing (older schema)
-        const isMissingTable = (err: any, table: string) => {
-          if (!err) return false;
-          const msg = String(err?.message || "").toLowerCase();
-          return msg.includes("could not find the table") || msg.includes("schema cache") || msg.includes(`public.${table}`);
-        };
-
-        const fallbackToBills = async () => {
-          const [{ data: bill, error: billErr }, { data: billItems, error: biErr }] = await Promise.all([
-            (supabase as any)
-              .from("bills")
-              .select("*")
-              .eq("id", invoiceId)
-              .maybeSingle(),
-            (supabase as any)
-              .from("bill_items")
-              .select("name, qty, weight, fraction, price")
-              .eq("bill_id", invoiceId)
-              .order("created_at", { ascending: true }),
-          ]);
-          if (billErr) throw billErr;
-          if (biErr) throw biErr;
-          if (!bill) throw new Error("ไม่พบข้อมูลใบแจ้งหนี้");
-          setBill(bill); // Store bill data for sharing
-          setInvoice({
-            id: bill.id,
-            bill_date: bill.bill_date,
-            type: bill.type,
-            customer_name: bill.customer,
-            receipt_no: (bill as any).bill_no || bill.id,
-            company_address: bill.company_address,
-            tax_id: bill.tax_id,
-          });
-          setItems((billItems ?? []).map((b: any) => ({
-            name: b.name,
-            qty: Number(b.qty ?? 0),
-            weight: Number(b.weight ?? 0),
-            fraction: Number(b.fraction ?? 0),
-            price: Number(b.price ?? 0),
-          })));
-        };
-
-        if (isMissingTable(invErr, "invoices") || isMissingTable(itemsErr, "invoice_items")) {
-          await fallbackToBills();
-        } else if (invErr || itemsErr) {
-          throw invErr || itemsErr;
-        } else if (!inv) {
-          await fallbackToBills();
-        } else {
-          setInvoice(inv as Invoice);
-          setItems((itms ?? []).map((i: any) => ({
-            name: i.name,
-            qty: Number(i.qty ?? 0),
-            weight: Number(i.weight ?? 0),
-            fraction: Number(i.fraction ?? 0),
-            price: Number(i.price ?? 0),
-          })));
-        }
+        if (billErr) throw billErr;
+        if (biErr) throw biErr;
+        if (!bill) throw new Error("ไม่พบข้อมูลใบแจ้งหนี้");
+        setBill(bill);
+        setInvoice({
+          id: bill.id,
+          bill_date: bill.bill_date,
+          type: bill.type,
+          customer_name: bill.customer,
+          receipt_no: bill.bill_no || bill.id,
+          company_address: bill.company_address,
+          tax_id: bill.tax_id,
+        });
+        setItems((billItems ?? []).map((b: any) => ({
+          name: b.name,
+          qty: Number(b.qty ?? 0),
+          weight: Number(b.weight ?? 0),
+          fraction: Number(b.fraction ?? 0),
+          price: Number(b.price ?? 0),
+        })));
       } catch (e: any) {
         setError(e?.message || "เกิดข้อผิดพลาดในการโหลดข้อมูล");
       } finally {
