@@ -20,7 +20,6 @@ import {
 } from "lucide-react";
 
 const money = (n: number) => n.toLocaleString("th-TH", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-const num = (n: number) => n.toLocaleString("th-TH", { maximumFractionDigits: 1 });
 
 type RangeKey = "today" | "7d" | "month" | "6m" | "1y" | "3y" | "5y";
 
@@ -214,18 +213,11 @@ export default function Dashboard() {
             <span className="text-xl font-bold">฿{money(m.buy)}</span>
             <span className="text-sm text-muted-foreground">รวมยอดซื้อ</span>
           </div>
-          <div className="mt-2 text-sm text-muted-foreground">ค่าใช้จ่าย ฿{money(m.exp)}</div>
         </Kpi>
         <Kpi icon={<ArrowUpRight className="h-4 w-4" />} title="ขาย">
           <div className="flex items-baseline gap-2">
             <span className="text-xl font-bold text-primary">฿{money(m.sell)}</span>
             <span className="text-sm text-muted-foreground">รวมยอดขาย</span>
-          </div>
-          <div className="mt-2 text-sm">
-            กำไรสุทธิ:{" "}
-            <span className={`font-semibold ${m.profit >= 0 ? "text-[hsl(var(--positive))]" : "text-destructive"}`}>
-              {showProfit ? `฿${money(m.profit)} (${m.margin.toFixed(1)}%)` : "฿ •••••"}
-            </span>
           </div>
         </Kpi>
         <Kpi icon={<AlertCircle className="h-4 w-4" />} title="หนี้ค้าง (ทั้งหมด)">
@@ -233,9 +225,17 @@ export default function Dashboard() {
           <div className="text-sm text-muted-foreground">ลูกค้าค้างจ่าย {debt.recvN} บิล</div>
           <div className="mt-2 text-sm">ต้องจ่ายสวน: <b>฿{money(debt.pay)}</b> ({debt.payN} บิล)</div>
         </Kpi>
-        <Kpi icon={<ShoppingBasket className="h-4 w-4" />} title="ตะกร้าค้างข้างนอก">
-          <div className="text-xl font-bold">{num(basketStats.outstanding)} ใบ</div>
-          <div className="text-sm text-muted-foreground">วันนี้ ออก {basketStats.outToday} · คืน {basketStats.inToday}</div>
+        <Kpi icon={<Wallet className="h-4 w-4" />} title="ค่าใช้จ่าย & กำไรสุทธิ">
+          <div className="flex items-baseline gap-2">
+            <span className="text-xl font-bold">฿{money(m.exp)}</span>
+            <span className="text-sm text-muted-foreground">ค่าใช้จ่าย</span>
+          </div>
+          <div className="mt-2 text-sm">
+            กำไรสุทธิ:{" "}
+            <span className={`font-semibold ${m.profit >= 0 ? "text-[hsl(var(--positive))]" : "text-destructive"}`}>
+              {showProfit ? `฿${money(m.profit)} (${m.margin.toFixed(1)}%)` : "฿ •••••"}
+            </span>
+          </div>
         </Kpi>
       </div>
 
