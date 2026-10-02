@@ -20,7 +20,6 @@ import {
 } from "lucide-react";
 
 const money = (n: number) => n.toLocaleString("th-TH", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-const num = (n: number) => n.toLocaleString("th-TH", { maximumFractionDigits: 1 });
 
 type RangeKey = "today" | "7d" | "month" | "6m" | "1y" | "3y" | "5y";
 
