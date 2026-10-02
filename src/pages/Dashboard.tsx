@@ -15,8 +15,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { format, eachDayOfInterval } from "date-fns";
 import {
-  FileText, Receipt, Wallet, ShoppingBasket, Eye, EyeOff, TrendingUp, Scale,
-  AlertCircle, ArrowDownLeft, ArrowUpRight, Activity, Users,
+  FileText, Receipt, Wallet, ShoppingBasket, Eye, EyeOff, TrendingUp,
+  AlertCircle, Activity, Users,
 } from "lucide-react";
 
 const money = (n: number) => n.toLocaleString("th-TH", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
@@ -77,19 +77,6 @@ export default function Dashboard() {
 
   const billIds = useMemo(() => bills.map((b: any) => b.id), [bills]);
 
-  const { data: items = [] } = useQuery({
-    queryKey: ["dash-items", billIds],
-    enabled: billIds.length > 0,
-    queryFn: async () => {
-      const out: any[] = [];
-      for (let i = 0; i < billIds.length; i += 200) {
-        const chunk = billIds.slice(i, i + 200);
-        const rows = await fetchAll((a, b) => sb.from("bill_items").select("bill_id, weight").in("bill_id", chunk).range(a, b));
-        out.push(...rows);
-      }
-      return out;
-    },
-  });
 
   const { data: expenses = [] } = useQuery({
     queryKey: ["dash-expenses", fromIso, toIso],
